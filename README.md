@@ -99,7 +99,7 @@ Each observation includes:
 
 ## Tasks
 
-The environment ships with three deterministic tasks, graded from easy to hard.
+The environment ships with four deterministic tasks, graded from easy to expert.
 
 ### 1. Easy: VIP SSO lockout
 
@@ -112,6 +112,10 @@ The agent must identify the real billing issue among distractors, inspect both r
 ### 3. Hard: Phishing and credential exposure
 
 The agent must respond to a likely spoofed-support incident with related follow-up context and same-company distractors. The correct reply must be security-safe: urgent routing to security, correct tagging, duplicate consolidation, containment guidance, evidence preservation, and no false claim of a confirmed breach.
+
+### 4. Expert: GDPR compliance trap
+
+A churning enterprise customer has submitted both a routine cancellation and a formal GDPR Article 17 data-erasure request, plus their outside counsel has filed a legal follow-up. The trap: most models will treat this as a simple billing cancellation. The agent must recognise the legal obligation, route the GDPR ticket to compliance (not billing), merge the legal follow-up correctly, handle two tickets from the same company with different teams and priorities, and draft a reply that acknowledges the statutory timeline without prematurely claiming deletion is complete. Six tickets in the inbox, three from the same company, two red herrings.
 
 ## Reward design
 
@@ -228,9 +232,10 @@ The script defaults to the local Docker image `support-ops-env:latest`. Override
 
 Verified locally against the running server using the built-in deterministic fallback path in [inference.py](inference.py):
 
-- easy: `0.9250`
-- medium: `0.8500`
-- hard: `0.8227`
+- easy: `0.925`
+- medium: `0.850`
+- hard: `0.823`
+- expert: `0.823`
 
 When a real model endpoint is available, scores may differ, but the environment graders themselves remain deterministic.
 
