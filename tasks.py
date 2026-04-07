@@ -308,6 +308,156 @@ TASKS: Dict[str, TaskSpec] = {
             "Ask the customer to preserve evidence and rotate credentials or sessions.",
         ),
     ),
+    "expert_compliance_trap": TaskSpec(
+        task_id="expert_compliance_trap",
+        difficulty="expert",
+        title="GDPR deletion disguised as a billing cancellation",
+        objective=(
+            "Identify the real compliance obligation hidden inside what looks like "
+            "a routine churn case. Two tickets from the same company must be handled "
+            "together: one is a straightforward cancellation, the other is a legally "
+            "binding data-deletion request under GDPR Article 17. Route each to the "
+            "correct team, merge the related follow-up, draft a reply that addresses "
+            "both the cancellation and the legal obligation without overpromising "
+            "timelines, and submit."
+        ),
+        intro=(
+            "Your inbox has several tickets. At first glance most look like billing "
+            "or product issues. Read carefully — one customer's request carries legal "
+            "weight that changes how you must handle the entire case."
+        ),
+        max_steps=16,
+        ideal_steps=12,
+        tickets=[
+            _tk(
+                "X-4001", "Freya Lindqvist", "Velora GmbH", "Enterprise",
+                "We are cancelling — please confirm final invoice",
+                "Hi, we have decided not to renew. Can you confirm the final "
+                "invoice amount and when billing stops? Thanks.",
+            ),
+            _tk(
+                "X-4002", "Freya Lindqvist", "Velora GmbH", "Enterprise",
+                "GDPR Art. 17 — formal request to erase all our data",
+                "Per GDPR Article 17, we formally request erasure of all personal "
+                "data associated with our organisation within the statutory 30-day "
+                "window. This includes backups and third-party sub-processors. "
+                "Please confirm receipt and provide a written timeline.",
+            ),
+            _tk(
+                "X-4003", "Marco Bianchi", "Velora GmbH", "Enterprise",
+                "Follow-up from legal on the data deletion",
+                "I am outside counsel for Velora. Freya asked me to ensure the "
+                "data-erasure request is logged as a formal legal demand. Please "
+                "route to your DPO or compliance officer.",
+            ),
+            _tk(
+                "X-4004", "Aisha Okafor", "Pinegrove Analytics", "Business",
+                "We think we were overcharged last quarter",
+                "Our usage report says 14 seats but the invoice shows 18. Could "
+                "someone look at invoice 29104?",
+            ),
+            _tk(
+                "X-4005", "Jordan Kim", "Rivercrest Labs", "Pro",
+                "API rate limit seems too low",
+                "We keep hitting 429s on the /export endpoint. Can the limit be raised?",
+            ),
+            _tk(
+                "X-4006", "Lukas Petrov", "Velora GmbH", "Enterprise",
+                "Can we still download our dashboards before the account closes?",
+                "Before everything is wiped, we need to export our saved dashboards "
+                "and report templates. Is there a self-serve option or do we need help?",
+            ),
+        ],
+        required_views=["X-4001", "X-4002", "X-4003"],
+        expectations={
+            "X-4002": TicketExpectation(
+                priority="urgent",
+                team="compliance",
+                status="escalated",
+                required_tags=("gdpr", "data_deletion", "legal"),
+                reply_requirements=(
+                    ReplyRequirement(
+                        "ack_legal",
+                        ("formal request", "data erasure", "article 17", "gdpr"),
+                        0.20,
+                    ),
+                    ReplyRequirement(
+                        "timeline",
+                        ("30 day", "30-day", "statutory", "calendar days"),
+                        0.15,
+                    ),
+                    ReplyRequirement(
+                        "dpo_route",
+                        ("data protection", "compliance team", "dpo", "compliance officer"),
+                        0.20,
+                    ),
+                    ReplyRequirement(
+                        "sub_processors",
+                        ("sub-processor", "third-party", "third party", "downstream"),
+                        0.15,
+                    ),
+                    ReplyRequirement(
+                        "written_confirm",
+                        ("written confirmation", "confirm in writing", "formal acknowledgement",
+                         "confirmation email"),
+                        0.15,
+                    ),
+                    ReplyRequirement(
+                        "no_overpromise",
+                        ("review", "assess", "scope", "verify"),
+                        0.15,
+                    ),
+                ),
+                forbidden_reply_phrases=(
+                    "all data has been deleted",
+                    "deletion is complete",
+                    "we have erased everything",
+                    "your data is already gone",
+                    "we don't store personal data",
+                ),
+            ),
+            "X-4001": TicketExpectation(
+                priority="high",
+                team="billing",
+                status="pending_customer",
+                required_tags=("churn",),
+                reply_requirements=(
+                    ReplyRequirement(
+                        "cancellation_ack",
+                        ("cancellation", "non-renewal", "final invoice", "last invoice"),
+                        0.40,
+                    ),
+                    ReplyRequirement(
+                        "export_reminder",
+                        ("export", "download", "retrieve your data", "before account closes"),
+                        0.30,
+                    ),
+                    ReplyRequirement(
+                        "billing_stop",
+                        ("billing will stop", "no further charges", "end of billing",
+                         "billing cycle"),
+                        0.30,
+                    ),
+                ),
+                forbidden_reply_phrases=(
+                    "we have deleted your data",
+                    "sorry to see you go but your data is erased",
+                ),
+            ),
+        },
+        merge_expectations=(MergeExpectation("X-4003", "X-4002"),),
+        irrelevant_ticket_ids=("X-4004", "X-4005"),
+        policy_hints=(
+            "GDPR Article 17 requests are legal obligations, not feature requests.",
+            "A cancellation ticket and a data-deletion ticket from the same company "
+            "are related but require different teams and different handling.",
+            "Do not confirm data has been deleted before the compliance team reviews.",
+            "The legal counsel follow-up should be merged into the GDPR ticket, not "
+            "the billing ticket.",
+            "X-4006 is from the same company but is not irrelevant — it relates to the "
+            "cancellation workflow. Do not penalize or modify it unnecessarily.",
+        ),
+    ),
 }
 
 TASK_IDS: List[str] = list(TASKS.keys())

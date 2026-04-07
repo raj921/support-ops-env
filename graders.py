@@ -182,6 +182,8 @@ def grade_state(st: SupportOpsState, task: TaskSpec) -> GradeResult:
         w = 0.10 * comp["views"] + 0.55 * comp["field_alignment"] + 0.25 * comp["reply_quality"] + 0.10 * comp["submitted"]
     elif task.difficulty == "medium":
         w = 0.10 * comp["views"] + 0.35 * comp["field_alignment"] + 0.20 * comp["reply_quality"] + 0.25 * comp["merge_quality"] + 0.10 * comp["submitted"]
+    elif task.difficulty == "expert":
+        w = 0.10 * comp["views"] + 0.20 * comp["field_alignment"] + 0.35 * comp["reply_quality"] + 0.20 * comp["merge_quality"] + 0.15 * comp["submitted"]
     else:
         w = 0.10 * comp["views"] + 0.25 * comp["field_alignment"] + 0.30 * comp["reply_quality"] + 0.20 * comp["merge_quality"] + 0.15 * comp["submitted"]
 

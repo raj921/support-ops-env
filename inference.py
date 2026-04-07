@@ -25,7 +25,12 @@ API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 TEMP = 0.0
 MAX_TOK = 300
 PASS_SCORE = 0.7
-MAX_STEPS = {"easy_vip_sso": 8, "medium_refund_duplicate": 10, "hard_security_phishing": 10}
+MAX_STEPS = {
+    "easy_vip_sso": 8,
+    "medium_refund_duplicate": 10,
+    "hard_security_phishing": 10,
+    "expert_compliance_trap": 16,
+}
 
 SYS_PROMPT = """You are operating a SaaS support inbox environment.
 Return exactly one JSON object per turn with keys:
@@ -124,6 +129,41 @@ def fallback_action(task_id: str, history: List[Dict[str, Any]]) -> Dict[str, An
                     "MFA codes. I escalated this to our security team immediately. Please reset "
                     "the affected password, rotate tokens or active sessions, and preserve the "
                     "email headers or a screenshot so we can investigate."
+                ),
+            },
+            {"action_type": "submit"},
+        ],
+        "expert_compliance_trap": [
+            {"action_type": "view_ticket", "ticket_id": "X-4001"},
+            {"action_type": "view_ticket", "ticket_id": "X-4002"},
+            {"action_type": "view_ticket", "ticket_id": "X-4003"},
+            {"action_type": "merge_ticket", "ticket_id": "X-4003", "target_ticket_id": "X-4002"},
+            {"action_type": "set_priority", "ticket_id": "X-4002", "priority": "urgent"},
+            {"action_type": "assign_team", "ticket_id": "X-4002", "team": "compliance"},
+            {"action_type": "add_tags", "ticket_id": "X-4002", "tags": ["gdpr", "data_deletion", "legal"]},
+            {"action_type": "set_status", "ticket_id": "X-4002", "status": "escalated"},
+            {
+                "action_type": "draft_reply",
+                "ticket_id": "X-4002",
+                "reply": (
+                    "We acknowledge your formal GDPR Article 17 data erasure request. "
+                    "Our compliance team and DPO will review the scope, including any "
+                    "third-party sub-processors, and provide written confirmation of "
+                    "the deletion timeline within the statutory 30-day window."
+                ),
+            },
+            {"action_type": "set_priority", "ticket_id": "X-4001", "priority": "high"},
+            {"action_type": "assign_team", "ticket_id": "X-4001", "team": "billing"},
+            {"action_type": "add_tags", "ticket_id": "X-4001", "tags": ["churn"]},
+            {"action_type": "set_status", "ticket_id": "X-4001", "status": "pending_customer"},
+            {
+                "action_type": "draft_reply",
+                "ticket_id": "X-4001",
+                "reply": (
+                    "We have processed your cancellation request. Your final invoice "
+                    "will reflect usage through the end of this billing cycle and no "
+                    "further charges will apply. Please export any dashboards or data "
+                    "you need before the account closes."
                 ),
             },
             {"action_type": "submit"},
