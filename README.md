@@ -125,7 +125,7 @@ The reward function emits dense partial progress:
 - low or zero reward for no-op and repeated actions
 - score degradation for invalid actions, inefficient looping, touching irrelevant tickets, wrong merges, unsafe reply content, and destructive handling
 
-Per-step reward is clamped to `[0.0, 1.0]`. Final task scores are deterministic and also clamped to `[0.0, 1.0]`.
+Per-step reward is clamped to `[0.0, 1.0]`. Final task scores from the grader are deterministic and mapped to the **open** interval `(0, 1)` (never exactly `0.0` or `1.0`), matching Phase 2 validation.
 
 ## Graders
 

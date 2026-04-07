@@ -33,6 +33,13 @@ def test_expert_task_can_reach_high_score():
     assert run_fallback("expert_compliance_trap") >= 0.7
 
 
+def test_grader_score_is_strictly_inside_unit_interval():
+    env = SupportOpsEnvironment()
+    env.reset(task_id="easy_vip_sso")
+    s = env.state.current_score
+    assert 0.0 < s < 1.0
+
+
 def test_invalid_duplicate_action_increases_invalid_count():
     env = SupportOpsEnvironment()
     env.reset(task_id="easy_vip_sso")

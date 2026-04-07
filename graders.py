@@ -24,6 +24,20 @@ def _clamp(v: float) -> float:
     return max(0.0, min(1.0, v))
 
 
+# Phase-2 validator: task score must be strictly in (0, 1), not 0.0 or 1.0.
+_OPEN_LO = 1e-3
+_OPEN_HI = 1.0 - 1e-3
+
+
+def _open01(s: float) -> float:
+    c = _clamp(s)
+    if c <= 0.0:
+        return _OPEN_LO
+    if c >= 1.0:
+        return _OPEN_HI
+    return max(_OPEN_LO, min(_OPEN_HI, c))
+
+
 @dataclass(frozen=True)
 class GradeResult:
     score: float
@@ -187,7 +201,7 @@ def grade_state(st: SupportOpsState, task: TaskSpec) -> GradeResult:
     else:
         w = 0.10 * comp["views"] + 0.25 * comp["field_alignment"] + 0.30 * comp["reply_quality"] + 0.20 * comp["merge_quality"] + 0.15 * comp["submitted"]
 
-    score = _clamp(w - tot_pen)
+    score = _open01(w - tot_pen)
     pens = {
         "reply_safety_penalty": round(rp, 4),
         "efficiency_penalty": round(eff_pen, 4),
