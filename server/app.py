@@ -27,9 +27,13 @@ def main(host: str = "0.0.0.0", port: int = 8000) -> None:
 
 
 if __name__ == "__main__":
-    import argparse
-    p = argparse.ArgumentParser()
-    p.add_argument("--host", default="0.0.0.0")
-    p.add_argument("--port", type=int, default=8000)
-    a = p.parse_args()
-    main(host=a.host, port=a.port)
+    import sys
+    if len(sys.argv) == 1:
+        main()
+    else:
+        import argparse
+        p = argparse.ArgumentParser()
+        p.add_argument("--host", default="0.0.0.0")
+        p.add_argument("--port", type=int, default=8000)
+        a = p.parse_args()
+        main(host=a.host, port=a.port)
