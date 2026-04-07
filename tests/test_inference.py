@@ -2,11 +2,11 @@ from support_ops_env.inference import log_end, log_start, log_step, resolve_api_
 
 
 def test_resolve_api_key_prefers_hf_token():
-    assert resolve_api_key({"HF_TOKEN": "hf-secret", "OPENAI_API_KEY": "openai-secret"}) == "hf-secret"
+    assert resolve_api_key({"HF_TOKEN": "hf-secret", "API_KEY": "api-secret"}) == "hf-secret"
 
 
-def test_resolve_api_key_uses_openai_fallback():
-    assert resolve_api_key({"OPENAI_API_KEY": "openai-secret"}) == "openai-secret"
+def test_resolve_api_key_uses_api_key_fallback():
+    assert resolve_api_key({"API_KEY": "api-secret"}) == "api-secret"
 
 
 def test_logging_format(capsys):

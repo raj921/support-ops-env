@@ -17,10 +17,11 @@ except ImportError:
     from tasks import TASK_IDS
 
 BENCHMARK = "support_ops_env"
-IMAGE = os.environ.get("IMAGE_NAME", "support-ops-env:latest")
-ENV_URL = os.environ.get("ENV_BASE_URL")
-API_URL = os.environ.get("API_BASE_URL", "https://api.openai.com/v1")
-MODEL = os.environ.get("MODEL_NAME", "gpt-4.1-mini")
+LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME") or os.getenv("IMAGE_NAME") or "support-ops-env:latest"
+ENV_URL = os.getenv("ENV_BASE_URL")
+API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
+MODEL_NAME = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
+API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 TEMP = 0.0
 MAX_TOK = 300
 PASS_SCORE = 0.7
@@ -42,8 +43,9 @@ Choose one action per turn. Keep reply text concise and customer-safe."""
 
 
 def resolve_api_key(environ: Dict[str, str] | None = None) -> str:
-    env = environ or os.environ
-    return env.get("HF_TOKEN") or env.get("OPENAI_API_KEY") or "missing"
+    if environ is not None:
+        return environ.get("HF_TOKEN") or environ.get("API_KEY") or "missing"
+    return API_KEY or "missing"
 
 
 def log_start(task: str, env: str, model: str) -> None:
@@ -132,7 +134,7 @@ def fallback_action(task_id: str, history: List[Dict[str, Any]]) -> Dict[str, An
 
 
 def mk_client() -> OpenAI:
-    return OpenAI(base_url=API_URL, api_key=resolve_api_key())
+    return OpenAI(base_url=API_BASE_URL, api_key=resolve_api_key())
 
 
 def get_model_action(
@@ -153,7 +155,7 @@ def get_model_action(
     )
     try:
         resp = client.chat.completions.create(
-            model=MODEL,
+            model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": SYS_PROMPT},
                 {"role": "user", "content": prompt},
@@ -194,7 +196,7 @@ async def run_task(client: OpenAI, env: SupportOpsEnv, task_id: str) -> float:
     steps = 0
     score = 0.0
 
-    log_start(task=task_id, env=BENCHMARK, model=MODEL)
+    log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
     result = await env.reset(task_id=task_id, seed=7)
 
     try:
@@ -233,11 +235,11 @@ async def run_task(client: OpenAI, env: SupportOpsEnv, task_id: str) -> float:
 async def main() -> None:
     client = mk_client()
     try:
-        env = await SupportOpsEnv.from_docker_image(IMAGE)
+        env = await SupportOpsEnv.from_docker_image(LOCAL_IMAGE_NAME)
     except Exception as exc:
         if not ENV_URL:
             raise RuntimeError(
-                f"Failed to start Docker image {IMAGE!r}: {exc}. "
+                f"Failed to start Docker image {LOCAL_IMAGE_NAME!r}: {exc}. "
                 "Set ENV_BASE_URL to run against an existing server."
             ) from exc
         print(f"[DEBUG] Falling back to ENV_BASE_URL: {exc}", flush=True)
