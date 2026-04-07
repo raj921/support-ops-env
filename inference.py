@@ -47,22 +47,23 @@ def resolve_api_key(environ: Dict[str, str] | None = None) -> str:
 
 
 def log_start(task: str, env: str, model: str) -> None:
-    print(f"[START] task={json.dumps(task)} env={json.dumps(env)} model={json.dumps(model)}", flush=True)
+    print(f"[START] task={task} env={env} model={model}", flush=True)
 
 
 def log_step(step: int, action: str, reward: float, done: bool, error: str | None) -> None:
+    err = error if error else "null"
     print(
-        f"[STEP] step={step} action={json.dumps(action)} reward={reward:.4f} "
-        f"done={str(done).lower()} error={json.dumps(error)}",
+        f"[STEP] step={step} action={action} reward={reward:.2f} "
+        f"done={str(done).lower()} error={err}",
         flush=True,
     )
 
 
 def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
-    rw = json.dumps([round(r, 4) for r in rewards])
+    rw = ",".join(f"{r:.2f}" for r in rewards)
     print(
         f"[END] success={str(success).lower()} steps={steps} "
-        f"score={score:.4f} rewards={rw}",
+        f"score={score:.3f} rewards={rw}",
         flush=True,
     )
 

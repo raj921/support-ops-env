@@ -15,7 +15,9 @@ def test_logging_format(capsys):
     log_end(success=True, steps=1, score=0.5, rewards=[0.5])
 
     lines = capsys.readouterr().out.strip().splitlines()
-    assert lines[0].startswith("[START] task=")
+    assert lines[0] == "[START] task=easy_vip_sso env=support_ops_env model=gpt-4.1-mini"
     assert lines[1].startswith("[STEP] step=1 action=")
-    assert "reward=0.5000" in lines[1]
-    assert lines[2].startswith("[END] success=true steps=1 score=0.5000 rewards=")
+    assert "reward=0.50" in lines[1]
+    assert "done=false" in lines[1]
+    assert "error=null" in lines[1]
+    assert lines[2] == "[END] success=true steps=1 score=0.500 rewards=0.50"
