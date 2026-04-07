@@ -21,9 +21,9 @@ This benchmark targets a practical gap in agent evaluation. Many environments te
 
 Additional context:
 
-- [docs/BENCHMARK_BRIEF.md](/Users/rajkumar/openenvhackthon/docs/BENCHMARK_BRIEF.md)
-- [docs/GLOSSARY.md](/Users/rajkumar/openenvhackthon/docs/GLOSSARY.md)
-- [docs/IMPLEMENTATION_CHECKLIST.md](/Users/rajkumar/openenvhackthon/docs/IMPLEMENTATION_CHECKLIST.md)
+- [docs/BENCHMARK_BRIEF.md](docs/BENCHMARK_BRIEF.md)
+- [docs/GLOSSARY.md](docs/GLOSSARY.md)
+- [docs/IMPLEMENTATION_CHECKLIST.md](docs/IMPLEMENTATION_CHECKLIST.md)
 
 ## Real-world task modeled
 
@@ -52,7 +52,7 @@ Typed models are implemented with Pydantic:
 - `SupportOpsObservation`
 - `SupportOpsState`
 
-Metadata is declared in [openenv.yaml](/Users/rajkumar/openenvhackthon/openenv.yaml).
+Metadata is declared in [openenv.yaml](openenv.yaml).
 
 ## Action space
 
@@ -124,7 +124,7 @@ Per-step reward is clamped to `[0.0, 1.0]`. Final task scores are deterministic 
 
 ## Graders
 
-Each task uses a deterministic grader in [graders.py](/Users/rajkumar/openenvhackthon/graders.py). The grader checks:
+Each task uses a deterministic grader in [graders.py](graders.py). The grader checks:
 
 - required ticket views
 - field alignment: priority, team, status, tags
@@ -204,7 +204,7 @@ The container serves the OpenEnv HTTP API on port `8000`.
 
 ## Baseline inference
 
-The required baseline script is [inference.py](/Users/rajkumar/openenvhackthon/inference.py). It:
+The required baseline script is [inference.py](inference.py). It:
 
 - uses the OpenAI Python client
 - reads `API_BASE_URL`, `MODEL_NAME`, and API credentials with precedence:
@@ -225,7 +225,7 @@ The script defaults to the local Docker image `support-ops-env:latest`. Override
 
 ## Baseline scores
 
-Verified locally against the running server using the built-in deterministic fallback path in [inference.py](/Users/rajkumar/openenvhackthon/inference.py):
+Verified locally against the running server using the built-in deterministic fallback path in [inference.py](inference.py):
 
 - easy: `0.9250`
 - medium: `0.8500`
@@ -235,11 +235,11 @@ When a real model endpoint is available, scores may differ, but the environment 
 
 ## Project structure
 
-- [models.py](/Users/rajkumar/openenvhackthon/models.py): typed action, observation, and state models
-- [tasks.py](/Users/rajkumar/openenvhackthon/tasks.py): task fixtures and expectations
-- [graders.py](/Users/rajkumar/openenvhackthon/graders.py): deterministic scoring logic
-- [server/support_ops_environment.py](/Users/rajkumar/openenvhackthon/server/support_ops_environment.py): environment implementation
-- [server/app.py](/Users/rajkumar/openenvhackthon/server/app.py): FastAPI/OpenEnv app
-- [client.py](/Users/rajkumar/openenvhackthon/client.py): typed OpenEnv client
-- [inference.py](/Users/rajkumar/openenvhackthon/inference.py): baseline runner
-- [scripts/validate-local.sh](/Users/rajkumar/openenvhackthon/scripts/validate-local.sh): local submission checklist
+- [models.py](models.py): typed action, observation, and state models
+- [tasks.py](tasks.py): task fixtures and expectations
+- [graders.py](graders.py): deterministic scoring logic
+- [server/support_ops_environment.py](server/support_ops_environment.py): environment implementation
+- [server/app.py](server/app.py): FastAPI/OpenEnv app
+- [client.py](client.py): typed OpenEnv client
+- [inference.py](inference.py): baseline runner
+- [scripts/validate-local.sh](scripts/validate-local.sh): local submission checklist
