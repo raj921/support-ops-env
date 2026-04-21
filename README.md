@@ -7,7 +7,6 @@ sdk: docker
 app_port: 8000
 tags:
   - openenv
-base_path: /web
 ---
 
 # Support Ops Env
