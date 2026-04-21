@@ -75,7 +75,11 @@ def get_gemma4_training_utils():
         "SYSTEM_PROMPT": _g4.SYSTEM_PROMPT,
         "SupportOpsToolEnv": _g4.SupportOpsToolEnv,
         "reward_total": _g4.reward_total,
-        "reward_fields": _g4.reward_fields,
+        "reward_investigation": _g4.reward_investigation,
+        "reward_routing": _g4.reward_routing,
         "reward_reply": _g4.reward_reply,
-        "reward_merge": _g4.reward_merge,
+        "reward_groundedness": _g4.reward_groundedness,
+        # Back-compat aliases (older cells may still import these).
+        "reward_fields": _g4.reward_routing,
+        "reward_merge": _g4.reward_investigation,
     }

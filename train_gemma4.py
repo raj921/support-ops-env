@@ -124,9 +124,12 @@ class SupportOpsToolEnv:
     _task_id: Optional[str] = None
 
     def __init__(self) -> None:
-        self.client = SupportOpsEnv(base_url=self._env_url)
+        # EnvClient.step / reset are async; .sync() returns a blocking adapter that
+        # TRL's environment_factory can call directly from its rollout loop.
+        self.client = SupportOpsEnv(base_url=self._env_url).sync()
         self.reward = 0.0
         self._component_breakdown: Dict[str, float] = {}
+        self._penalty_breakdown: Dict[str, float] = {}
         self._done = False
         self._reset()
 
@@ -136,6 +139,7 @@ class SupportOpsToolEnv:
         self._done = bool(result.done)
         obs = result.observation
         self._component_breakdown = dict(obs.reward_breakdown or {})
+        self._penalty_breakdown = dict(obs.penalty_breakdown or {})
         self.reward = float(obs.progress_score or 0.0)
 
     def _dispatch(
@@ -159,6 +163,7 @@ class SupportOpsToolEnv:
         obs = step.observation
         self._done = bool(step.done)
         self._component_breakdown = dict(obs.reward_breakdown or {})
+        self._penalty_breakdown = dict(obs.penalty_breakdown or {})
         self.reward = float(obs.progress_score or 0.0)
 
         if step.reward is not None:
@@ -391,31 +396,48 @@ class SupportOpsToolEnv:
 
 
 # ============================================================
-# Reward functions (read the grader's component breakdown)
-# ============================================================
+# Reward functions
+# ----------------------------------------------------------------
+# Keys below come from the deployed grader's reward_breakdown payload:
+#   {investigation, routing, reply_quality, groundedness, submission}
+# Penalty breakdown carries: unsupported_claim_penalty, unsafe_reply_penalty,
+#   repeat_penalty, irrelevant_penalty, invalid_action_penalty,
+#   no_progress_penalty, efficiency_penalty, disallowed_tool_penalty.
+# ================================================================
 
 def reward_total(completions, environments, **kwargs) -> List[float]:
-    """Overall episode reward — final grader score after submit_resolution."""
+    """Overall grader score (progress_score) — sums components minus penalties."""
     del completions, kwargs
     return [float(env.reward) for env in environments]
 
 
-def reward_fields(completions, environments, **kwargs) -> List[float]:
-    """Routing-field alignment (priority + team + status + tags)."""
+def reward_investigation(completions, environments, **kwargs) -> List[float]:
+    """Investigation credit — did the agent surface the right facts via tool calls?"""
     del completions, kwargs
-    return [float(env._component_breakdown.get("field_alignment", 0.0)) for env in environments]
+    return [float(env._component_breakdown.get("investigation", 0.0)) for env in environments]
+
+
+def reward_routing(completions, environments, **kwargs) -> List[float]:
+    """Routing correctness — priority + team + status + tags + merges."""
+    del completions, kwargs
+    return [float(env._component_breakdown.get("routing", 0.0)) for env in environments]
 
 
 def reward_reply(completions, environments, **kwargs) -> List[float]:
-    """Reply quality (keyword + grounding)."""
+    """Reply quality — keyword/paraphrase coverage minus forbidden phrases."""
     del completions, kwargs
     return [float(env._component_breakdown.get("reply_quality", 0.0)) for env in environments]
 
 
-def reward_merge(completions, environments, **kwargs) -> List[float]:
-    """Merge correctness."""
+def reward_groundedness(completions, environments, **kwargs) -> List[float]:
+    """Groundedness — did the reply claim only facts surfaced via tools?"""
     del completions, kwargs
-    return [float(env._component_breakdown.get("merge_quality", 0.0)) for env in environments]
+    return [float(env._component_breakdown.get("groundedness", 0.0)) for env in environments]
+
+
+# Back-compat aliases kept for older notebooks that imported these names.
+reward_fields = reward_routing
+reward_merge = reward_investigation
 
 
 # ============================================================
@@ -514,7 +536,7 @@ def main() -> None:
     trainer = GRPOTrainer(
         model=args.model,
         train_dataset=dataset,
-        reward_funcs=[reward_total, reward_fields, reward_reply, reward_merge],
+        reward_funcs=[reward_total, reward_investigation, reward_routing, reward_reply, reward_groundedness],
         peft_config=peft_config,
         args=GRPOConfig(
             chat_template_kwargs={"enable_thinking": args.enable_thinking},
