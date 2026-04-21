@@ -20,13 +20,23 @@ def test_schema_endpoint():
 
 
 def test_reset_step_and_state_endpoints():
-    r = tc.post("/reset", json={"task_id": "easy_vip_sso"})
+    r = tc.post("/reset", json={"task_id": "c1_access_lockout"})
     assert r.status_code == 200
-    assert r.json()["observation"]["task_id"] == "easy_vip_sso"
+    assert r.json()["observation"]["task_id"] == "c1_access_lockout"
 
-    r = tc.post("/step", json={"action": {"action_type": "view_ticket", "ticket_id": "E-1001"}})
+    r = tc.post(
+        "/step",
+        json={
+            "action": {
+                "assistant_message": "I am opening the urgent case.",
+                "tool_calls": [{"name": "inbox.open_case", "args": {"case_id": "A-1001"}}],
+            }
+        },
+    )
     assert r.status_code == 200
-    assert r.json()["observation"]["current_ticket_id"] == "E-1001"
+    obs = r.json()["observation"]
+    assert obs["tool_results"][0]["name"] == "inbox.open_case"
+    assert "Inbox" in obs["app_summaries"]
 
     r = tc.get("/state")
     assert r.status_code == 200
