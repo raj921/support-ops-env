@@ -34,12 +34,16 @@ gemma = [
     "transformers>=4.57.0",
     "accelerate>=0.30",
     "peft>=0.13.0",
+    # bitsandbytes currently forces torch<2.10; we track its compatible floor explicitly
+    # and pin torchvision/torchaudio so Colab's preinstalled versions don't end up mismatched.
     "bitsandbytes>=0.43.0",
+    "torch>=2.8.0,<2.10.0",
+    "torchvision>=0.23.0,<0.25.0",
+    "torchaudio>=2.8.0,<2.10.0",
     "datasets",
     "huggingface_hub>=0.20.0",
     "matplotlib",
     "numpy",
-    "torch>=2.8.0",
 ]
 
 [project.scripts]
