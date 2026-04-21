@@ -131,9 +131,16 @@ class SupportOpsToolEnv:
         self._component_breakdown: Dict[str, float] = {}
         self._penalty_breakdown: Dict[str, float] = {}
         self._done = False
-        self._reset()
+        self.reset()
 
-    def _reset(self) -> None:
+    def reset(self, **kwargs: object) -> str:
+        """Reset the env to a fresh episode.
+
+        TRL's ``environment_factory`` calls this between rollouts. Not a tool:
+        TRL special-cases ``reset`` so the model never sees it in the tool list.
+        Returns a short human-readable summary of the fresh task.
+        """
+        del kwargs
         task_id = self._task_id or TASK_IDS[0]
         result = self.client.reset(task_id=task_id)
         self._done = bool(result.done)
@@ -141,6 +148,7 @@ class SupportOpsToolEnv:
         self._component_breakdown = dict(obs.reward_breakdown or {})
         self._penalty_breakdown = dict(obs.penalty_breakdown or {})
         self.reward = float(obs.progress_score or 0.0)
+        return f"Task: {obs.task_title} — {obs.objective}"
 
     def _dispatch(
         self,
