@@ -39,7 +39,7 @@ gemma = [
     "huggingface_hub>=0.20.0",
     "matplotlib",
     "numpy",
-    "torch>=2.8.0,<2.10.0",
+    "torch>=2.8.0",
 ]
 
 [project.scripts]
