@@ -34,6 +34,8 @@ gemma = [
     "transformers>=4.57.0",
     "accelerate>=0.30",
     "peft>=0.13.0",
+    # TRL's environment_factory path parses tool responses with jmespath — required.
+    "jmespath>=1.0",
     # bitsandbytes currently forces torch<2.10; we track its compatible floor explicitly
     # and pin torchvision/torchaudio so Colab's preinstalled versions don't end up mismatched.
     "bitsandbytes>=0.43.0",
