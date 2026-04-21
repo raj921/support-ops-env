@@ -18,6 +18,29 @@ dev = [
     "pytest>=8.2.0",
     "ruff>=0.11.0",
 ]
+train = [
+    "trl[vllm]>=0.29.0",
+    "vllm>=0.11.0",
+    "torch>=2.8.0,<2.10.0",
+    "peft",
+    "transformers",
+    "datasets",
+    "huggingface_hub>=0.20.0",
+    "matplotlib",
+    "numpy",
+]
+gemma = [
+    "trl @ git+https://github.com/huggingface/trl.git",
+    "transformers>=4.57.0",
+    "accelerate>=0.30",
+    "peft>=0.13.0",
+    "bitsandbytes>=0.43.0",
+    "datasets",
+    "huggingface_hub>=0.20.0",
+    "matplotlib",
+    "numpy",
+    "torch>=2.8.0,<2.10.0",
+]
 
 [project.scripts]
 server = "server.app:main"
