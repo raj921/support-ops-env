@@ -8,9 +8,9 @@ Key differences vs ``train.py``:
 
     * Uses TRL's new ``environment_factory`` API (tools as Python methods on an env
       class, auto-introspected by their docstrings + type hints) — not ``rollout_func``.
-    * Loads Gemma 4 via ``AutoModelForCausalLM`` + ``AutoProcessor`` (text-only path).
-      Gemma 4 is multimodal but we don't feed images, so the simpler CausalLM head is
-      enough and avoids pulling in vision tower weights we'd never use.
+    * Loads Gemma 4 via ``AutoModelForImageTextToText`` + ``AutoProcessor`` as documented
+      by Hugging Face. Even for text-only prompting, Gemma 4 expects the processor path so
+      multimodal token-type ids are built correctly.
     * Toggles reasoning via ``chat_template_kwargs={"enable_thinking": True}`` so the
       rollouts get the "Thinking" boost that shows up on the Tau2 benchmark.
 
@@ -20,7 +20,7 @@ Quickstart::
 
     # 1. Install (TRL git HEAD required for environment_factory + Gemma 4)
     pip install "trl @ git+https://github.com/huggingface/trl.git"
-    pip install "transformers>=4.57.0" accelerate peft bitsandbytes matplotlib
+    pip install "transformers==5.5.4" accelerate peft bitsandbytes matplotlib
 
     # 2. Serve the environment (local dev) or point at a deployed HF Space
     python -m server.app --port 8000
