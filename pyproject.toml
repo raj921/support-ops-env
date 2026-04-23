@@ -18,6 +18,53 @@ dev = [
     "pytest>=8.2.0",
     "ruff>=0.11.0",
 ]
+train = [
+    # Qwen3-4B-Instruct-2507 requires transformers >= 5.0.
+    "trl[vllm]>=0.29.0",
+    "vllm>=0.11.0",
+    "torch>=2.8.0,<2.10.0",
+    "peft>=0.13.0",
+    "transformers>=5.0",
+    "bitsandbytes>=0.43.0",
+    "accelerate>=0.30",
+    "datasets",
+    "huggingface_hub>=0.20.0",
+    "matplotlib",
+    "numpy",
+]
+unsloth = [
+    # Official Unsloth Qwen3.5 GRPO path — 1.5x faster, 50% less VRAM vs FA2.
+    # Qwen3.5-4B bf16 LoRA fits 10 GB, so a Colab T4 (16 GB) is enough.
+    "unsloth>=2026.4.0",
+    "unsloth_zoo>=2026.4.0",
+    "trl>=0.29.0",
+    "transformers>=5.0",
+    "peft>=0.13.0",
+    "accelerate>=0.30",
+    "torch>=2.8.0,<2.10.0",
+    "datasets",
+    "huggingface_hub>=0.20.0",
+    "matplotlib",
+    "numpy",
+]
+gemma = [
+    "trl @ git+https://github.com/huggingface/trl.git",
+    "transformers==5.5.4",
+    "accelerate>=0.30",
+    "peft>=0.13.0",
+    # TRL's environment_factory path parses tool responses with jmespath — required.
+    "jmespath>=1.0",
+    # bitsandbytes currently forces torch<2.10; we track its compatible floor explicitly
+    # and pin torchvision/torchaudio so Colab's preinstalled versions don't end up mismatched.
+    "bitsandbytes>=0.43.0",
+    "torch>=2.8.0,<2.10.0",
+    "torchvision>=0.23.0,<0.25.0",
+    "torchaudio>=2.8.0,<2.10.0",
+    "datasets",
+    "huggingface_hub>=0.20.0",
+    "matplotlib",
+    "numpy",
+]
 
 [project.scripts]
 server = "server.app:main"

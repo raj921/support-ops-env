@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from typing import Dict, List, Sequence
 
 try:
-    from .models import SupportOpsState, TicketSnapshot
-    from .tasks import MergeExpectation, TaskSpec, TicketExpectation
+    from .models import CaseRecord, SupportOpsState
+    from .tasks import ExpectedCaseState, GroundingRule, TaskSpec, TaskExpectation
 except ImportError:
-    from models import SupportOpsState, TicketSnapshot
-    from tasks import MergeExpectation, TaskSpec, TicketExpectation
+    from models import CaseRecord, SupportOpsState
+    from tasks import ExpectedCaseState, GroundingRule, TaskSpec, TaskExpectation
 
 
 def _norm(text: str) -> str:
@@ -16,21 +16,20 @@ def _norm(text: str) -> str:
 
 
 def _has(text: str, needles: Sequence[str]) -> bool:
-    h = _norm(text)
-    return any(n.lower() in h for n in needles)
+    haystack = _norm(text)
+    return any(_norm(needle) in haystack for needle in needles)
 
 
 def _clamp(v: float) -> float:
     return max(0.0, min(1.0, v))
 
 
-# Phase-2 validator: task score must be strictly in (0, 1), not 0.0 or 1.0.
 _OPEN_LO = 1e-3
 _OPEN_HI = 1.0 - 1e-3
 
 
-def _open01(s: float) -> float:
-    c = _clamp(s)
+def _open01(score: float) -> float:
+    c = _clamp(score)
     if c <= 0.0:
         return _OPEN_LO
     if c >= 1.0:
@@ -46,175 +45,222 @@ class GradeResult:
     unmet_requirements: List[str]
 
 
-def _reply_score(reply: str, exp: TicketExpectation) -> tuple[float, List[str], float]:
-    if not reply.strip():
-        return 0.0, ["missing customer reply"], 0.0
+def _case_map(state: SupportOpsState) -> Dict[str, CaseRecord]:
+    return {case.case_id: case for case in state.cases}
 
-    tw = sum(r.weight for r in exp.reply_requirements)
-    mw = 0.0
-    miss: List[str] = []
-    for r in exp.reply_requirements:
-        if _has(reply, r.alternatives):
-            mw += r.weight
+
+def _tool_name_history(state: SupportOpsState) -> List[str]:
+    return [entry.split("(", 1)[0] for entry in state.tool_history]
+
+
+def _reply_score(reply_text: str, expectation: TaskExpectation) -> tuple[float, List[str]]:
+    if not reply_text.strip():
+        return 0.0, ["missing reply draft"]
+
+    total_weight = sum(item.weight for item in expectation.reply_requirements)
+    matched_weight = 0.0
+    unmet: List[str] = []
+    for item in expectation.reply_requirements:
+        if _has(reply_text, item.alternatives):
+            matched_weight += item.weight
         else:
-            miss.append(f"reply missing {r.name}")
+            unmet.append(f"reply missing {item.name}")
 
-    hits = sum(1 for p in exp.forbidden_reply_phrases if p.lower() in _norm(reply))
-    pen = min(0.5, hits * 0.25)
-    return _clamp(mw / tw if tw else 1.0), miss, pen
+    return (_clamp(matched_weight / total_weight if total_weight else 1.0), unmet)
 
 
-def _tkt_map(st: SupportOpsState) -> Dict[str, TicketSnapshot]:
-    return {t.ticket_id: t for t in st.tickets}
+def _routing_score(case: CaseRecord, expected: ExpectedCaseState) -> tuple[float, List[str]]:
+    score = 0.0
+    unmet: List[str] = []
 
-
-def _field_score(t: TicketSnapshot, exp: TicketExpectation) -> tuple[float, List[str]]:
-    s = 0.0
-    um: List[str] = []
-
-    if t.priority == exp.priority:
-        s += 0.30
+    if case.priority == expected.priority:
+        score += 0.25
     else:
-        um.append(f"{t.ticket_id} priority should be {exp.priority}")
+        unmet.append(f"{case.case_id} priority should be {expected.priority}")
 
-    if t.assigned_team == exp.team:
-        s += 0.30
+    if case.assigned_team == expected.team:
+        score += 0.25
     else:
-        um.append(f"{t.ticket_id} team should be {exp.team}")
+        unmet.append(f"{case.case_id} team should be {expected.team}")
 
-    if t.status == exp.status:
-        s += 0.20
+    if case.status == expected.status:
+        score += 0.20
     else:
-        um.append(f"{t.ticket_id} status should be {exp.status}")
+        unmet.append(f"{case.case_id} status should be {expected.status}")
 
-    matched = sum(1 for tag in exp.required_tags if tag in t.tags)
-    s += 0.20 * (matched / len(exp.required_tags))
-    for tag in exp.required_tags:
-        if tag not in t.tags:
-            um.append(f"{t.ticket_id} missing tag {tag}")
+    matched_tags = sum(1 for tag in expected.required_tags if tag in case.tags)
+    score += 0.20 * (matched_tags / max(1, len(expected.required_tags)))
+    for tag in expected.required_tags:
+        if tag not in case.tags:
+            unmet.append(f"{case.case_id} missing tag {tag}")
 
-    return s, um
+    if expected.merged_into is None:
+        score += 0.10 if case.merged_into is None else 0.0
+        if case.merged_into is not None:
+            unmet.append(f"{case.case_id} should not be merged")
+    else:
+        if case.merged_into == expected.merged_into:
+            score += 0.10
+        else:
+            unmet.append(f"{case.case_id} should merge into {expected.merged_into}")
+
+    return score, unmet
 
 
-def _merge_score(
-    tm: Dict[str, TicketSnapshot], merges: Sequence[MergeExpectation]
-) -> tuple[float, List[str]]:
-    if not merges:
+def _grounding_score(reply_text: str, seen_facts: Sequence[str], rules: Sequence[GroundingRule]) -> tuple[float, List[str]]:
+    if not reply_text.strip():
+        return 0.0, ["reply missing grounded claims"]
+
+    missing: List[str] = []
+    total = 0
+    matched = 0
+    reply = _norm(reply_text)
+    for rule in rules:
+        if _norm(rule.phrase) in reply:
+            total += 1
+            if rule.fact_id in seen_facts:
+                matched += 1
+            else:
+                missing.append(f"reply claim '{rule.phrase}' was not surfaced")
+    if total == 0:
         return 1.0, []
-    ok = 0
-    um: List[str] = []
-    for m in merges:
-        src = tm.get(m.source_ticket_id)
-        if src and src.merged_into == m.target_ticket_id:
-            ok += 1
-        else:
-            um.append(f"{m.source_ticket_id} should be merged into {m.target_ticket_id}")
-    return ok / len(merges), um
+    return matched / total, missing
 
 
-def _wrong_merge_pen(
-    st: SupportOpsState, expected: Sequence[MergeExpectation]
-) -> tuple[float, List[str]]:
-    exp_pairs = {(m.source_ticket_id, m.target_ticket_id) for m in expected}
-    exp_srcs = {m.source_ticket_id for m in expected}
-    bad = 0
-    um: List[str] = []
-    for t in st.tickets:
-        if t.merged_into is None:
+def _investigation_score(task: TaskSpec, state: SupportOpsState) -> tuple[float, List[str]]:
+    seen_facts = set(state.seen_facts)
+    tool_history = set(_tool_name_history(state))
+
+    tool_fraction = sum(tool in tool_history for tool in task.expectation.required_tools) / max(
+        1, len(task.expectation.required_tools)
+    )
+    fact_fraction = sum(fid in seen_facts for fid in task.expectation.required_fact_ids) / max(
+        1, len(task.expectation.required_fact_ids)
+    )
+
+    unmet = []
+    for tool in task.expectation.required_tools:
+        if tool not in tool_history:
+            unmet.append(f"tool {tool} was never used")
+    for fact_id in task.expectation.required_fact_ids:
+        if fact_id not in seen_facts:
+            unmet.append(f"fact {fact_id} was never surfaced")
+
+    return (0.45 * tool_fraction + 0.55 * fact_fraction, unmet)
+
+
+def _irrelevant_penalty(task: TaskSpec, state: SupportOpsState, case_map: Dict[str, CaseRecord]) -> tuple[float, List[str]]:
+    touched = 0
+    unmet: List[str] = []
+    for case_id in task.expectation.irrelevant_case_ids:
+        case = case_map.get(case_id)
+        if case is None:
             continue
-        pair = (t.ticket_id, t.merged_into)
-        if pair not in exp_pairs:
-            bad += 1
-            um.append(f"unexpected merge {t.ticket_id} -> {t.merged_into}")
-        elif t.ticket_id not in exp_srcs:
-            bad += 1
-            um.append(f"unexpected merge source {t.ticket_id}")
-    return min(0.2, bad * 0.1), um
+        if (
+            case.priority != "normal"
+            or case.assigned_team != "general"
+            or case.status != "open"
+            or case.tags
+            or case.merged_into is not None
+            or case.reply_draft
+            or case.note_log
+        ):
+            touched += 1
+            unmet.append(f"irrelevant case {case_id} was modified")
+    return min(0.15, touched * 0.08), unmet
 
 
-def grade_state(st: SupportOpsState, task: TaskSpec) -> GradeResult:
-    tm = _tkt_map(st)
-    um: List[str] = []
+def _repeat_penalty(state: SupportOpsState) -> float:
+    repeats = max(0, len(state.tool_history) - len(set(state.tool_history)))
+    return min(0.12, repeats * 0.03)
 
-    vs = sum(tid in st.viewed_ticket_ids for tid in task.required_views) / max(1, len(task.required_views))
-    for tid in task.required_views:
-        if tid not in st.viewed_ticket_ids:
-            um.append(f"{tid} was never viewed")
 
-    fs: List[float] = []
-    rs: List[float] = []
-    rp = 0.0
+def grade_state(state: SupportOpsState, task: TaskSpec) -> GradeResult:
+    case_map = _case_map(state)
+    unmet: List[str] = []
 
-    for tid, exp in task.expectations.items():
-        t = tm[tid]
-        fv, fu = _field_score(t, exp)
-        fs.append(fv)
-        um.extend(fu)
+    investigation, inv_unmet = _investigation_score(task, state)
+    unmet.extend(inv_unmet)
 
-        rv, ru, rfp = _reply_score(t.reply_draft, exp)
-        rs.append(rv)
-        um.extend(f"{tid}: {msg}" for msg in ru)
-        rp += rfp
+    routing_scores = []
+    for case_id, expected in task.expectation.expected_cases.items():
+        case = case_map[case_id]
+        route_score, route_unmet = _routing_score(case, expected)
+        routing_scores.append(route_score)
+        unmet.extend(route_unmet)
 
-    ms, mu = _merge_score(tm, task.merge_expectations)
-    um.extend(mu)
-    wmp, wmu = _wrong_merge_pen(st, task.merge_expectations)
-    um.extend(wmu)
+    primary_case = case_map[task.expectation.primary_case_id]
+    reply_quality, reply_unmet = _reply_score(primary_case.reply_draft, task.expectation)
+    unmet.extend(reply_unmet)
 
-    irr = 0
-    bad_res = 0
-    for t in st.tickets:
-        if t.ticket_id in task.irrelevant_ticket_ids:
-            if (t.priority != "normal" or t.assigned_team != "general"
-                    or t.tags or t.reply_draft or t.merged_into is not None):
-                irr += 1
-        if t.ticket_id not in task.expectations and t.status in {"resolved", "closed"}:
-            bad_res += 1
+    groundedness, grounded_unmet = _grounding_score(
+        primary_case.reply_draft,
+        state.seen_facts,
+        task.expectation.grounding_rules,
+    )
+    unmet.extend(grounded_unmet)
 
-    eff_pen = 0.0
-    if st.step_count > task.ideal_steps:
-        overflow = st.step_count - task.ideal_steps
+    submission = 1.0 if state.submitted else 0.0
+
+    forbidden_hits = sum(
+        phrase.lower() in _norm(primary_case.reply_draft)
+        for phrase in task.expectation.forbidden_reply_phrases
+    )
+    unsupported_claim_penalty = min(0.35, len(grounded_unmet) * 0.12)
+    unsafe_reply_penalty = min(0.35, forbidden_hits * 0.2)
+    repeat_penalty = _repeat_penalty(state)
+    irrelevant_penalty, irr_unmet = _irrelevant_penalty(task, state, case_map)
+    unmet.extend(irr_unmet)
+    invalid_action_penalty = min(0.20, state.invalid_action_count * 0.08)
+    no_progress_penalty = min(0.10, state.no_progress_count * 0.03)
+
+    disallowed_tool_uses = sum(
+        tool in _tool_name_history(state) for tool in task.expectation.disallowed_tools
+    )
+    disallowed_tool_penalty = min(0.25, disallowed_tool_uses * 0.15)
+    for tool in task.expectation.disallowed_tools:
+        if tool in _tool_name_history(state):
+            unmet.append(f"disallowed tool {tool} was used")
+
+    if state.step_count > task.ideal_steps:
+        overflow = state.step_count - task.ideal_steps
         budget = max(1, task.max_steps - task.ideal_steps)
-        eff_pen = min(0.15, 0.15 * (overflow / budget))
-
-    rep_pen = min(0.10, max(0, len(st.action_history) - len(set(st.action_history))) * 0.02)
-    irr_pen = min(0.10, irr * 0.05)
-    wr_pen = min(0.10, bad_res * 0.05)
-    inv_pen = min(0.10, st.invalid_action_count * 0.03)
-    np_pen = min(0.10, st.no_progress_count * 0.015)
-    tot_pen = min(0.45, rp + eff_pen + rep_pen + irr_pen + wr_pen + wmp + inv_pen + np_pen)
-
-    comp = {
-        "views": vs,
-        "field_alignment": sum(fs) / max(1, len(fs)),
-        "reply_quality": sum(rs) / max(1, len(rs)),
-        "merge_quality": ms,
-        "submitted": 1.0 if st.submitted else 0.0,
-    }
-
-    if task.difficulty == "easy":
-        w = 0.10 * comp["views"] + 0.55 * comp["field_alignment"] + 0.25 * comp["reply_quality"] + 0.10 * comp["submitted"]
-    elif task.difficulty == "medium":
-        w = 0.10 * comp["views"] + 0.35 * comp["field_alignment"] + 0.20 * comp["reply_quality"] + 0.25 * comp["merge_quality"] + 0.10 * comp["submitted"]
-    elif task.difficulty == "expert":
-        w = 0.10 * comp["views"] + 0.20 * comp["field_alignment"] + 0.35 * comp["reply_quality"] + 0.20 * comp["merge_quality"] + 0.15 * comp["submitted"]
+        efficiency_penalty = min(0.12, 0.12 * (overflow / budget))
     else:
-        w = 0.10 * comp["views"] + 0.25 * comp["field_alignment"] + 0.30 * comp["reply_quality"] + 0.20 * comp["merge_quality"] + 0.15 * comp["submitted"]
+        efficiency_penalty = 0.0
 
-    score = _open01(w - tot_pen)
-    pens = {
-        "reply_safety_penalty": round(rp, 4),
-        "efficiency_penalty": round(eff_pen, 4),
-        "repeat_penalty": round(rep_pen, 4),
-        "irrelevant_penalty": round(irr_pen, 4),
-        "wrong_resolution_penalty": round(wr_pen, 4),
-        "wrong_merge_penalty": round(wmp, 4),
-        "invalid_action_penalty": round(inv_pen, 4),
-        "no_progress_penalty": round(np_pen, 4),
+    components = {
+        "investigation": round(investigation, 4),
+        "routing": round(sum(routing_scores) / max(1, len(routing_scores)), 4),
+        "reply_quality": round(reply_quality, 4),
+        "groundedness": round(groundedness, 4),
+        "submission": round(submission, 4),
     }
+
+    weighted = (
+        0.28 * components["investigation"]
+        + 0.32 * components["routing"]
+        + 0.20 * components["reply_quality"]
+        + 0.12 * components["groundedness"]
+        + 0.08 * components["submission"]
+    )
+    penalties = {
+        "unsupported_claim_penalty": round(unsupported_claim_penalty, 4),
+        "unsafe_reply_penalty": round(unsafe_reply_penalty, 4),
+        "repeat_penalty": round(repeat_penalty, 4),
+        "irrelevant_penalty": round(irrelevant_penalty, 4),
+        "invalid_action_penalty": round(invalid_action_penalty, 4),
+        "no_progress_penalty": round(no_progress_penalty, 4),
+        "efficiency_penalty": round(efficiency_penalty, 4),
+        "disallowed_tool_penalty": round(disallowed_tool_penalty, 4),
+    }
+    total_penalty = sum(penalties.values())
+    score = _open01(weighted - total_penalty)
+
     return GradeResult(
         score=round(score, 4),
-        components={k: round(v, 4) for k, v in comp.items()},
-        penalties=pens,
-        unmet_requirements=sorted(set(um)),
+        components=components,
+        penalties=penalties,
+        unmet_requirements=sorted(set(unmet)),
     )
+

@@ -5,3 +5,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 outputs/
+.DS_Store
+Copy_of_Voyager_*.ipynb
+eval_runs/
+audit_runs/
