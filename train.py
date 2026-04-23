@@ -340,24 +340,34 @@ def _score_components(info: Dict[str, Any]) -> Dict[str, float]:
     }
 
 
-def reward_total(episode: Dict[str, Any]) -> float:
-    """Overall reward per episode — sum of shaped + terminal score."""
-    return float(episode.get("total_reward", 0.0))
+def _coerce_reward_list(values: Any) -> List[float]:
+    if isinstance(values, list):
+        return [float(v) for v in values]
+    return [float(values)]
 
 
-def reward_fields(episode: Dict[str, Any]) -> float:
-    """Reward component: routing-field correctness (priority + team + status + tags)."""
-    return float(episode.get("field_reward", 0.0))
+def reward_total(total_reward, **kwargs) -> List[float]:
+    """Overall reward per sample from rollout_func extra fields."""
+    del kwargs
+    return _coerce_reward_list(total_reward)
 
 
-def reward_reply(episode: Dict[str, Any]) -> float:
-    """Reward component: reply quality (keyword + grounding)."""
-    return float(episode.get("reply_reward", 0.0))
+def reward_fields(field_reward, **kwargs) -> List[float]:
+    """Routing-field correctness from rollout_func extra fields."""
+    del kwargs
+    return _coerce_reward_list(field_reward)
 
 
-def reward_grounding(episode: Dict[str, Any]) -> float:
-    """Reward component: surfaced-fact / tool-use evidence."""
-    return float(episode.get("grounding_reward", 0.0))
+def reward_reply(reply_reward, **kwargs) -> List[float]:
+    """Reply quality from rollout_func extra fields."""
+    del kwargs
+    return _coerce_reward_list(reply_reward)
+
+
+def reward_grounding(grounding_reward, **kwargs) -> List[float]:
+    """Grounding quality from rollout_func extra fields."""
+    del kwargs
+    return _coerce_reward_list(grounding_reward)
 
 
 # ============================================================
@@ -657,7 +667,7 @@ def main() -> None:
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    env = SupportOpsEnv(base_url=args.env_url)
+    env = SupportOpsEnv(base_url=args.env_url).sync()
     dataset = Dataset.from_dict(
         {"prompt": ["Triage and resolve this support operations case."] * args.dataset_size}
     )
@@ -724,8 +734,7 @@ def main() -> None:
         num_train_epochs=args.num_epochs,
         learning_rate=args.learning_rate,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
-        per_device_train_batch_size=1,
-        generation_batch_size=args.num_generations,
+        per_device_train_batch_size=args.num_generations,
         num_generations=args.num_generations,
         max_completion_length=512,
         logging_steps=args.logging_steps,
