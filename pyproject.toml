@@ -47,6 +47,10 @@ unsloth = [
     "matplotlib",
     "numpy",
 ]
+kaggle = [
+    # CLI only — for `kaggle kernels push` (see scripts/push_kaggle_kernel.sh).
+    "kaggle>=1.6.0",
+]
 gemma = [
     "trl @ git+https://github.com/huggingface/trl.git",
     "transformers==5.5.4",

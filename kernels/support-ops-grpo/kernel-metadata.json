@@ -1,0 +1,14 @@
+{
+  "id": "rajkumar295/support-ops-env-grpo",
+  "title": "Support Ops Env — GRPO (OpenEnv)",
+  "code_file": "support_ops_kaggle.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}

@@ -19,6 +19,7 @@ tags:
 
 - **Space (environment, live)**: https://huggingface.co/spaces/raj23211/support-ops-env
 - **Colab (Qwen3-4B-Instruct-2507 training)**: see `support_ops_colab.ipynb`
+- **Kaggle (same Qwen GRPO flow)**: `support_ops_kaggle.ipynb` — enable **GPU + Internet**, secret `HF_TOKEN`, outputs under `/kaggle/working`. **CLI push:** folder `kernels/support-ops-grpo/` (`kernel-metadata.json` + notebook); run `kaggle kernels push -p kernels/support-ops-grpo` (see `kernels/support-ops-grpo/README.md`).
 - **Colab (Gemma 4 training, experimental)**: see `support_ops_colab_gemma4.ipynb`
 
 ---
