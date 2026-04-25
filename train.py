@@ -381,11 +381,42 @@ def apply_chat_template(
 # ============================================================
 
 _JSON_FENCE_RE = re.compile(r"```(?:json)?\s*([\s\S]*?)```", re.MULTILINE)
+_THINK_RE = re.compile(r"<think>[\s\S]*?</think>", re.IGNORECASE)
 
 
 def _strip_fences(text: str) -> str:
     match = _JSON_FENCE_RE.search(text)
     return match.group(1).strip() if match else text.strip()
+
+
+def _extract_first_json_object(text: str) -> Optional[str]:
+    """Extract the first balanced JSON object from free-form model output."""
+    start = text.find("{")
+    if start == -1:
+        return None
+
+    depth = 0
+    in_string = False
+    escape = False
+    for idx in range(start, len(text)):
+        ch = text[idx]
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start:idx + 1]
+    return None
 
 
 def parse_tool_calls(text: str) -> Dict[str, Any]:
@@ -395,22 +426,42 @@ def parse_tool_calls(text: str) -> Dict[str, Any]:
     Falls back to a safe ``submit_resolution`` no-op if parsing fails so the
     episode still makes forward progress instead of crashing the trainer.
     """
-    cleaned = _strip_fences(text)
+    cleaned = _THINK_RE.sub("", _strip_fences(text)).strip()
+    parse_error = ""
     try:
         obj = json.loads(cleaned)
         if not isinstance(obj, dict):
             raise ValueError("expected a JSON object")
+    except (json.JSONDecodeError, ValueError) as exc:
+        extracted = _extract_first_json_object(cleaned)
+        if extracted is None:
+            parse_error = f"{type(exc).__name__}: {str(exc)[:160]}"
+            obj = None
+        else:
+            try:
+                obj = json.loads(extracted)
+                if not isinstance(obj, dict):
+                    raise ValueError("expected a JSON object")
+            except (json.JSONDecodeError, ValueError) as nested_exc:
+                parse_error = f"{type(nested_exc).__name__}: {str(nested_exc)[:160]}"
+                obj = None
+
+    if obj is not None:
         return {
             "assistant_message": obj.get("assistant_message") or "(no message)",
             "tool_calls": obj.get("tool_calls") or [],
             "answer": obj.get("answer"),
+            "_parse_ok": True,
+            "parse_error": "",
         }
-    except (json.JSONDecodeError, ValueError):
-        return {
-            "assistant_message": "parser_error: falling back to safe no-op",
-            "tool_calls": [],
-            "answer": None,
-        }
+
+    return {
+        "assistant_message": "parser_error: falling back to safe no-op",
+        "tool_calls": [],
+        "answer": None,
+        "_parse_ok": False,
+        "parse_error": parse_error or "unknown parse error",
+    }
 
 
 def to_action(parsed: Dict[str, Any]) -> SupportOpsAction:
@@ -451,9 +502,61 @@ def reward_total(total_reward, **kwargs) -> List[float]:
 
 
 def reward_fields(field_reward, **kwargs) -> List[float]:
-    """Routing-field correctness from rollout_func extra fields."""
+    """Dense workflow reward from rollout_func extra fields."""
     del kwargs
     return _coerce_reward_list(field_reward)
+
+
+def _milestone_reward(history: List[Dict[str, Any]]) -> float:
+    """Dense workflow reward from structural progress, independent of final score."""
+    tool_names: List[str] = []
+    submitted = False
+    for entry in history:
+        for tc in entry.get("tool_calls") or []:
+            if isinstance(tc, dict):
+                name = tc.get("name")
+            else:
+                name = getattr(tc, "name", None)
+            if name:
+                tool_names.append(name)
+        answer = entry.get("answer") or {}
+        if isinstance(answer, dict) and answer.get("done"):
+            submitted = True
+
+    seen = set(tool_names)
+    opened = 1.0 if "inbox.open_case" in seen else 0.0
+    investigative = sum(
+        1.0
+        for name in (
+            "crm.get_account",
+            "access.get_org_state",
+            "billing.get_invoice",
+            "billing.get_subscription",
+            "policy.search",
+            "ops.get_recommendation",
+        )
+        if name in seen
+    ) / 6.0
+    routing = sum(
+        1.0
+        for name in (
+            "workflow.set_priority",
+            "workflow.assign_team",
+            "workflow.set_status",
+            "workflow.add_tags",
+        )
+        if name in seen
+    ) / 4.0
+    drafted = 1.0 if "comms.draft_reply" in seen else 0.0
+    submitted_score = 1.0 if submitted else 0.0
+    return round(
+        0.20 * opened
+        + 0.30 * investigative
+        + 0.25 * routing
+        + 0.15 * drafted
+        + 0.10 * submitted_score,
+        4,
+    )
 
 
 def reward_reply(reply_reward, **kwargs) -> List[float]:
@@ -547,19 +650,13 @@ def rollout_once(
         # Track schema-parse health so we can spot flat-reward "model can't speak the schema" runs.
         parse_attempts += 1
         last_raw_completion = completion_text[:300]
-        try:
-            parsed = parse_tool_calls(completion_text)
-            action = to_action(parsed)
-            last_parse_error = ""
-        except Exception as exc:  # pragma: no cover - defensive logging
+        parsed = parse_tool_calls(completion_text)
+        if not parsed.get("_parse_ok", False):
             parse_failures += 1
-            last_parse_error = f"{type(exc).__name__}: {str(exc)[:120]}"
-            # Fall back to a no-op action so the episode can continue (env will count it).
-            action = SupportOpsAction(
-                assistant_message="(parse failed; emitting noop)",
-                tool_calls=[],
-                answer=None,
-            )
+            last_parse_error = str(parsed.get("parse_error") or "parse failure")[:120]
+        else:
+            last_parse_error = ""
+        action = to_action(parsed)
 
         # Tool-tier shaping before calling env
         for tc in action.tool_calls or []:
@@ -577,6 +674,7 @@ def rollout_once(
             {
                 "assistant_message": action.assistant_message,
                 "tool_calls": action.tool_calls,
+                "answer": action.answer.model_dump() if getattr(action, "answer", None) else None,
                 "reward": step_reward,
                 "done": bool(step.done),
             }
@@ -597,20 +695,40 @@ def rollout_once(
     grounding_reward = float(breakdown.get("groundedness", 0.0))
     submission_reward = float(breakdown.get("submission", 0.0))
     total_penalty = float(sum(penalty.values()))
+    milestone_reward = _milestone_reward(history)
+    workflow_reward = round(
+        0.35 * milestone_reward
+        + 0.30 * investigation_reward
+        + 0.25 * routing_reward
+        + 0.10 * submission_reward,
+        4,
+    )
+    dense_total_reward = round(
+        total_reward
+        + shaped_bonus
+        + 0.35 * investigation_reward
+        + 0.20 * routing_reward
+        + 0.20 * reply_reward
+        + 0.15 * grounding_reward
+        + 0.10 * submission_reward,
+        4,
+    )
 
     return {
         "prompt_ids": prompt_ids_acc,
         "completion_ids": completion_ids_acc,
         "logprobs": logprobs_acc[-1] if logprobs_acc else [],
-        "total_reward": total_reward + shaped_bonus,
+        "total_reward": dense_total_reward,
         # back-compat names expected by older notebooks + reward_funcs
-        "field_reward": routing_reward,
+        "field_reward": workflow_reward,
         "reply_reward": reply_reward,
         "grounding_reward": grounding_reward,
         # full breakdown for new plot/eval tooling
         "investigation_reward": investigation_reward,
         "routing_reward": routing_reward,
         "submission_reward": submission_reward,
+        "milestone_reward": milestone_reward,
+        "workflow_reward": workflow_reward,
         "penalty_total": total_penalty,
         "penalty_breakdown": dict(penalty),
         "task_id": task_id,
