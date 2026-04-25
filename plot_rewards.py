@@ -242,7 +242,7 @@ def print_table(path: Path) -> None:
 # ----------------------------------------------------------------------
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Plot Support Ops GRPO rewards")
+    parser = argparse.ArgumentParser(description="Plot DriftShield GRPO rewards")
     parser.add_argument("csv_path", nargs="?", help="Path to reward_log.csv")
     parser.add_argument("--live", action="store_true", help="Refresh every 30s")
     parser.add_argument("--table", action="store_true", help="Print ASCII table instead of plot")

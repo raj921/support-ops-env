@@ -2,7 +2,7 @@
 """
 eval_compare.py — Baseline vs Trained comparison runner (guide §19 demo format).
 
-Runs the **same** set of Support Ops tasks against:
+Runs the **same** set of DriftShield (D1) tasks against:
 
   1. A base model (e.g. ``Qwen/Qwen3-4B-Instruct-2507``), and optionally
   2. The same base model with a trained LoRA adapter attached.

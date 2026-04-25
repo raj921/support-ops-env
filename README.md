@@ -111,6 +111,14 @@ python audit.py --env-url <env> --adapter-path outputs/.../ \
 
 Reward curves: `python plot_rewards.py outputs/*/reward_log.csv` (4-panel: total, components, penalty, pass-rate).
 
+### Committed proof artifacts
+
+| File | Role |
+|------|------|
+| [`reward_curve.png`](reward_curve.png) | Example 4-panel reward plot (source CSV: [`docs/driftshield_proof_reward_log.csv`](docs/driftshield_proof_reward_log.csv)). |
+| [`eval_compare.md`](eval_compare.md) | Naive hand rollout vs scripted strong policy on all D1 tasks (repro: `python scripts/generate_proof_artifacts.py`). |
+| [`before_after_prompt_injection.md`](before_after_prompt_injection.md) | Before/after story for `ds_prompt_injection_access`. |
+
 ---
 
 ## Setup
@@ -149,7 +157,10 @@ Docker: `docker build -t driftshield . && docker run --rm -p 8000:8000 driftshie
 | `client.py` | Typed sync/async OpenEnv client |
 | `inference.py` | Baseline runner + scripted strong baselines |
 | `train.py` · `train_gemma4.py` | GRPO training paths |
-| `eval_compare.py` · `audit.py` · `plot_rewards.py` | Demo artifacts |
+| `eval_compare.py` · `audit.py` · `plot_rewards.py` | Demo runners |
+| `scripts/generate_proof_artifacts.py` | Regenerate `reward_curve.png`, `eval_compare.md`, `before_after_prompt_injection.md` |
+| `reward_curve.png` · `eval_compare.md` · `before_after_prompt_injection.md` | Committed proof artifacts (see Demo §) |
+| `docs/driftshield_proof_reward_log.csv` | Illustrative training log for the plot |
 | `tests/test_driftshield.py` | 19 DriftShield-specific tests |
 
 ---
