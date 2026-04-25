@@ -90,6 +90,32 @@ logger = logging.getLogger(__name__)
 _orig_vllm_gen = None
 
 
+def _require_vllm_trl_colocate_safe() -> None:
+    """TRL GRPO colocate matches vLLM 0.11–0.18; 0.19+ hits ``NameError: LLM is not defined`` in TRL."""
+    import re
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        vv = version("vllm")
+    except PackageNotFoundError as exc:
+        raise SystemExit(
+            "use_vllm=True but the vllm package is not installed. "
+            "Install e.g. pip install 'vllm>=0.11,<0.19' or pass --no-vllm."
+        ) from exc
+    m = re.match(r"(\d+)\.(\d+)", vv.strip())
+    if m and (int(m.group(1)), int(m.group(2))) >= (0, 19):
+        raise SystemExit(
+            f"vLLM {vv} is ahead of what this TRL GRPO build supports (use 0.11.x–0.18.x). "
+            "Fix: pip install -U 'vllm>=0.11,<0.19' and restart the kernel, or set USE_VLLM=False / --no-vllm."
+        )
+    try:
+        from vllm import LLM  # noqa: F401
+    except ImportError as exc:
+        raise SystemExit(
+            "use_vllm=True but `from vllm import LLM` failed. Install a supported vLLM or use --no-vllm."
+        ) from exc
+
+
 def _patch_vllm_generate(trainer: Any) -> None:
     """Wrap vLLM generate so TRL gets top-k-list logprobs even on vLLM 0.11.x."""
     global _orig_vllm_gen
@@ -1051,6 +1077,7 @@ def main() -> None:
         save_total_limit=3,
     )
     if args.use_vllm and not args.use_unsloth:
+        _require_vllm_trl_colocate_safe()
         grpo_kwargs.update(
             use_vllm=True,
             vllm_mode=args.vllm_mode,

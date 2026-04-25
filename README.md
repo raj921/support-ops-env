@@ -133,6 +133,8 @@ openenv validate --url http://localhost:8000
 
 Docker: `docker build -t driftshield . && docker run --rm -p 8000:8000 driftshield`.
 
+**Colab / TRL + vLLM:** TRL’s GRPO colocate path supports **vLLM 0.11–0.18**. If `GRPOTrainer` raises `NameError: LLM is not defined` or warns about vLLM **0.19+**, run `pip install -U 'vllm>=0.11,<0.19'` and restart the kernel (notebooks pin this in the install cell). Install **`tomli` / `tomli-w`** if `openenv-core` warns they are missing.
+
 ---
 
 ## Training paths
