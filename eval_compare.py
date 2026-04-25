@@ -293,7 +293,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--base-model", default="Qwen/Qwen3-4B-Instruct-2507")
     p.add_argument("--adapter-path", default=None,
                    help="Path to the trained LoRA adapter dir (optional). If omitted, runs baseline only.")
-    p.add_argument("--difficulty", default="easy",
+    p.add_argument("--difficulty", default="driftshield",
                    help="Curriculum to evaluate on: easy | medium | hard | expert | all | <task_id>")
     p.add_argument("--episodes", type=int, default=1,
                    help="Episodes per task (greedy, so usually 1 is enough).")

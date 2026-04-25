@@ -602,9 +602,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--reward-log", default="reward_log.csv")
     parser.add_argument(
         "--difficulty",
-        default="easy",
-        help="Curriculum: easy | medium | hard | expert | all | <task_id>. "
-             "Defaults to 'easy' so the model sees non-zero reward early (guide \u00a76).",
+        default="driftshield_easy",
+        help=(
+            "Curriculum: driftshield | driftshield_easy | easy | medium | hard | expert | all | "
+            "<task_id>. Defaults to 'driftshield_easy' (D1 prompt-injection warmup) so the model "
+            "sees non-zero reward early on the new DriftShield collection."
+        ),
     )
     parser.add_argument("--dry-run", action="store_true",
                         help="Build trainer but skip trainer.train() for smoke-testing wiring.")

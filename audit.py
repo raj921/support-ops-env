@@ -351,7 +351,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--env-url", default="http://localhost:8000")
     p.add_argument("--base-model", default="Qwen/Qwen3-4B-Instruct-2507")
     p.add_argument("--adapter-path", default=None)
-    p.add_argument("--difficulty", default="easy")
+    p.add_argument("--difficulty", default="driftshield")
     p.add_argument("--episodes", type=int, default=1)
     p.add_argument("--max-turns", type=int, default=15)
     p.add_argument("--no-4bit", action="store_true")
