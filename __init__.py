@@ -1,4 +1,11 @@
-"""Support Ops Env — an OpenEnv benchmark for SaaS support operations."""
+"""DriftShield — an OpenEnv benchmark that trains LLM agents to survive
+production runtime failures (prompt injection, schema drift, poisoned memory,
+lying tools).
+
+The Python package is still importable as ``support_ops_env`` for backwards
+compatibility with the live HF Space URL and existing notebooks. New code
+should prefer the ``DriftShield*`` aliases below.
+"""
 
 from .client import SupportOpsEnv
 from .models import SupportOpsAction, SupportOpsObservation, SupportOpsState
@@ -12,10 +19,20 @@ from .tasks import (
     list_task_specs,
 )
 
+# DriftShield-branded aliases — preferred for new code.
+DriftShieldEnv = SupportOpsEnv
+DriftShieldAction = SupportOpsAction
+DriftShieldObservation = SupportOpsObservation
+DriftShieldState = SupportOpsState
+
 __all__ = [
     "DIFFICULTY_ORDER",
     "DRIFTSHIELD_TASK_IDS",
     "DRIFTSHIELD_TIERS",
+    "DriftShieldAction",
+    "DriftShieldEnv",
+    "DriftShieldObservation",
+    "DriftShieldState",
     "SupportOpsAction",
     "SupportOpsEnv",
     "SupportOpsObservation",

@@ -247,7 +247,7 @@ def _markdown_report(base_agg: Dict[str, float], trained_agg: Dict[str, float],
                      base_model: str, adapter_path: Optional[str],
                      difficulty: str, episodes: int) -> str:
     lines = [
-        f"# Baseline vs Trained — Support Ops Env",
+        f"# Baseline vs Trained — DriftShield",
         f"",
         f"- Base model: `{base_model}`",
         f"- Adapter:    `{adapter_path or '(none — baseline only)'}`",
@@ -288,7 +288,7 @@ def _markdown_report(base_agg: Dict[str, float], trained_agg: Dict[str, float],
 # ----------------------------------------------------------------------
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Baseline vs Trained evaluation for Support Ops Env")
+    p = argparse.ArgumentParser(description="Baseline vs Trained evaluation for DriftShield")
     p.add_argument("--env-url", default="http://localhost:8000")
     p.add_argument("--base-model", default="Qwen/Qwen3-4B-Instruct-2507")
     p.add_argument("--adapter-path", default=None,

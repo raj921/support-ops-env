@@ -1,5 +1,5 @@
 """
-GRPO Training — Support Ops Env (Qwen path).
+GRPO Training — DriftShield (Qwen path).
 
 Two loaders:
 
@@ -124,7 +124,7 @@ def patch_trl_vllm_compat() -> None:
 # System prompt
 # ============================================================
 
-SYSTEM_PROMPT = """You are SupportOps Control Tower, a deterministic support-operations agent.
+SYSTEM_PROMPT = """You are DriftShield, a deterministic support-operations agent.
 
 You operate six apps via tool calls: Inbox, CRM, Billing, Access, Policy, Comms.
 
@@ -548,7 +548,7 @@ def plot_rewards(csv_path: os.PathLike, out_path: Optional[os.PathLike] = None) 
     ax1.plot(episodes, _rolling(total, window), color="#1f77b4", linewidth=2, label=f"rolling({window})")
     ax1.axhline(y=0, color="gray", linestyle="--", alpha=0.5)
     ax1.set_ylabel("Total reward")
-    ax1.set_title(f"Support Ops Env — GRPO reward ({len(episodes)} episodes)")
+    ax1.set_title(f"DriftShield — GRPO reward ({len(episodes)} episodes)")
     ax1.legend()
     ax1.grid(True, alpha=0.3)
 
@@ -572,7 +572,7 @@ def plot_rewards(csv_path: os.PathLike, out_path: Optional[os.PathLike] = None) 
 # ============================================================
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="GRPO training for Support Ops Env")
+    parser = argparse.ArgumentParser(description="GRPO training for DriftShield")
     parser.add_argument("--model-id", default=None,
                         help="HF model id. Defaults to 'Qwen/Qwen3-4B-Instruct-2507' for the "
                              "stable path, or 'unsloth/Qwen3.5-4B' when --use-unsloth is set.")

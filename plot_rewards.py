@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Plot Support Ops Env training rewards from a CSV log.
+Plot DriftShield training rewards from a CSV log.
 
 Usage (while training is running or after)::
 
@@ -155,7 +155,7 @@ def plot(path: Path, save_path: Optional[Path] = None, window: int = 10) -> None
     ax_total.axhline(y=0, color="gray", linestyle="--", alpha=0.5)
     ax_total.axhline(y=0.5, color="green", linestyle=":", alpha=0.5, label="pass threshold")
     ax_total.set_ylabel("Total reward")
-    ax_total.set_title(f"Support Ops Env — GRPO training ({log.n()} episodes, schema={log.schema})")
+    ax_total.set_title(f"DriftShield — GRPO training ({log.n()} episodes, schema={log.schema})")
     ax_total.legend(loc="lower right")
     ax_total.grid(True, alpha=0.3)
 

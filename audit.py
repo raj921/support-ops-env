@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-audit.py — Reward-hack audit for Support Ops Env trajectories (guide §8, §15).
+audit.py — Reward-hack audit for DriftShield trajectories (guide §8, §15).
 
 Runs a model against one or more tasks, dumps the full trajectory (tool
 sequence, component breakdown, penalties, final answer, surfaced facts),
@@ -288,7 +288,7 @@ def _markdown_report(records: List[AuditRecord], base_model: str, adapter_path: 
                      difficulty: str, flag_head: int) -> str:
     all_flags: Counter = Counter(f for r in records for f in r.flags)
     lines: List[str] = [
-        "# Reward-hack audit — Support Ops Env",
+        "# Reward-hack audit — DriftShield",
         "",
         f"- Base model: `{base_model}`",
         f"- Adapter:    `{adapter_path or '(none)'}`",
@@ -347,7 +347,7 @@ def _markdown_report(records: List[AuditRecord], base_model: str, adapter_path: 
 # ----------------------------------------------------------------------
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Reward-hack audit for Support Ops Env")
+    p = argparse.ArgumentParser(description="Reward-hack audit for DriftShield")
     p.add_argument("--env-url", default="http://localhost:8000")
     p.add_argument("--base-model", default="Qwen/Qwen3-4B-Instruct-2507")
     p.add_argument("--adapter-path", default=None)

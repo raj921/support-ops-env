@@ -1,5 +1,5 @@
 """
-GRPO Training — Support Ops Env × Gemma 4 (TRL environment_factory pattern).
+GRPO Training — DriftShield × Gemma 4 (TRL environment_factory pattern).
 
 This module mirrors the official reference from Hugging Face:
     https://github.com/huggingface/huggingface-gemma-recipes/blob/main/scripts/carla_vlm_gemma.py
@@ -75,7 +75,7 @@ logger = logging.getLogger(__name__)
 # System prompt
 # ============================================================
 
-SYSTEM_PROMPT = """You are SupportOps Control Tower, a first-line SaaS support operator.
+SYSTEM_PROMPT = """You are DriftShield, a first-line enterprise SaaS operator.
 
 You must resolve customer cases by calling the tools you have available. Always:
   1. Open the relevant case(s) first with inbox_open_case.
@@ -463,7 +463,7 @@ reward_merge = reward_investigation
 # ============================================================
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="GRPO training for Support Ops Env (Gemma 4)")
+    parser = argparse.ArgumentParser(description="GRPO training for DriftShield (Gemma 4)")
     parser.add_argument("--model", default="google/gemma-4-E2B-it")
     parser.add_argument("--env-url", default="http://localhost:8000")
     parser.add_argument("--task-id", default=None)
