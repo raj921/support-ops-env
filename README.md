@@ -133,7 +133,9 @@ openenv validate --url http://localhost:8000
 
 Docker: `docker build -t driftshield . && docker run --rm -p 8000:8000 driftshield`.
 
-**Colab / TRL + vLLM:** TRL’s GRPO colocate path supports **vLLM 0.11–0.18**. If `GRPOTrainer` raises `NameError: LLM is not defined` or warns about vLLM **0.19+**, run `pip install -U 'vllm>=0.11,<0.19'` and restart the kernel (notebooks pin this in the install cell). Install **`tomli` / `tomli-w`** if `openenv-core` warns they are missing.
+**Colab / TRL + vLLM:** Per [TRL GRPO + vLLM](https://huggingface.co/docs/trl/main/en/grpo_trainer#speed-up-training-with-vllm-powered-generation), use `pip install "trl[vllm]"`. This repo pins **`vllm>=0.11,<0.19`** because TRL currently supports vLLM **0.11–0.18** (0.19+ can raise `NameError: LLM`). Notebooks install `tomli` / `tomli-w` for **`openenv-core`**.
+
+**Git push to a Hugging Face Space:** Hub rejects raw binary blobs in Git. Install **[Git-Xet](https://huggingface.co/docs/hub/main/en/xet/using-xet-storage#git-xet)** (`git xet install`), use **`.gitattributes`** (included here for common images), or prefer text artifacts (e.g. **`docs/reward_curve.svg`**). Full checklist: **[`docs/HUGGINGFACE_HUB.md`](docs/HUGGINGFACE_HUB.md)**.
 
 ---
 
@@ -163,6 +165,8 @@ Docker: `docker build -t driftshield . && docker run --rm -p 8000:8000 driftshie
 | `scripts/generate_proof_artifacts.py` | Regenerate `docs/reward_curve.svg`, `eval_compare.md`, `before_after_prompt_injection.md` |
 | `docs/reward_curve.svg` · `eval_compare.md` · `before_after_prompt_injection.md` | Committed proof artifacts (see Demo §) |
 | `docs/driftshield_proof_reward_log.csv` | Illustrative training log for the plot |
+| `docs/HUGGINGFACE_HUB.md` | Hub Git / Xet + TRL doc links and push checklist |
+| `.gitattributes` | Image patterns → Git LFS pointers (Hub-compatible) |
 | `tests/test_driftshield.py` | 19 DriftShield-specific tests |
 
 ---

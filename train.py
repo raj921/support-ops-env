@@ -91,7 +91,10 @@ _orig_vllm_gen = None
 
 
 def _require_vllm_trl_colocate_safe() -> None:
-    """TRL GRPO colocate matches vLLM 0.11–0.18; 0.19+ hits ``NameError: LLM is not defined`` in TRL."""
+    """TRL GRPO colocate matches vLLM 0.11–0.18; 0.19+ hits ``NameError: LLM is not defined`` in TRL.
+
+    TRL docs: https://huggingface.co/docs/trl/main/en/grpo_trainer#speed-up-training-with-vllm-powered-generation
+    """
     import re
     from importlib.metadata import PackageNotFoundError, version
 
