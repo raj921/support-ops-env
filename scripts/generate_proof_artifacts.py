@@ -2,7 +2,7 @@
 """
 Regenerate committed DriftShield proof artifacts (no GPU, no HF Space):
 
-  * reward_curve.png  — from docs/driftshield_proof_reward_log.csv
+  * docs/reward_curve.svg — from docs/driftshield_proof_reward_log.csv (SVG for HF Git; use --out for PNG locally)
   * eval_compare.md   — naive vs scripted-strong aggregates on all D1 tasks
   * before_after_prompt_injection.md — narrative + scores for prompt-injection task
 
@@ -237,7 +237,8 @@ def write_reward_csv() -> None:
 def plot_reward_curve() -> None:
     from plot_rewards import plot
 
-    out = ROOT / "reward_curve.png"
+    # SVG is text-based — Hugging Face Space Git rejects loose binary PNG commits.
+    out = DOCS / "reward_curve.svg"
     plot(CSV_PATH, out, window=6)
     print(f"Wrote {out}")
 

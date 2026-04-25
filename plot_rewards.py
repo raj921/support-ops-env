@@ -188,7 +188,11 @@ def plot(path: Path, save_path: Optional[Path] = None, window: int = 10) -> None
 
     plt.tight_layout()
     out = save_path or path.with_suffix(".png")
-    plt.savefig(out, dpi=150)
+    fmt = out.suffix.lower().lstrip(".") or "png"
+    if fmt == "svg":
+        plt.savefig(out, format="svg", bbox_inches="tight")
+    else:
+        plt.savefig(out, dpi=150)
     plt.close()
     print(f"Plot saved to {out}")
 
