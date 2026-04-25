@@ -428,6 +428,10 @@ def rollout_once(
     total_reward = 0.0
     shaped_bonus = 0.0
     done = False
+    parse_attempts = 0
+    parse_failures = 0
+    last_raw_completion = ""
+    last_parse_error = ""
 
     for turn in range(max_turns):
         user_text = format_observation(obs)
@@ -455,8 +459,22 @@ def rollout_once(
         completion_ids_acc.extend(completion_ids)
         logprobs_acc.append([0.0] * len(completion_ids))  # vLLM mode replaces this
 
-        parsed = parse_tool_calls(completion_text)
-        action = to_action(parsed)
+        # Track schema-parse health so we can spot flat-reward "model can't speak the schema" runs.
+        parse_attempts += 1
+        last_raw_completion = completion_text[:300]
+        try:
+            parsed = parse_tool_calls(completion_text)
+            action = to_action(parsed)
+            last_parse_error = ""
+        except Exception as exc:  # pragma: no cover - defensive logging
+            parse_failures += 1
+            last_parse_error = f"{type(exc).__name__}: {str(exc)[:120]}"
+            # Fall back to a no-op action so the episode can continue (env will count it).
+            action = SupportOpsAction(
+                assistant_message="(parse failed; emitting noop)",
+                tool_calls=[],
+                answer=None,
+            )
 
         # Tool-tier shaping before calling env
         for tc in action.tool_calls or []:
@@ -514,6 +532,14 @@ def rollout_once(
         "shaped_bonus": shaped_bonus,
         "turns": len(history),
         "done": done,
+        # Schema-parse health (every-N-episode diagnostic uses these).
+        "parse_attempts": parse_attempts,
+        "parse_failures": parse_failures,
+        "parse_ok_ratio": (
+            (parse_attempts - parse_failures) / parse_attempts if parse_attempts else 0.0
+        ),
+        "last_raw_completion": last_raw_completion,
+        "last_parse_error": last_parse_error,
     }
 
 
@@ -708,6 +734,7 @@ def main() -> None:
             "total_reward",
             "investigation", "routing", "reply_quality", "groundedness", "submission",
             "penalty_total",
+            "parse_ok_ratio",
             "timestamp",
         ])
 
@@ -721,11 +748,15 @@ def main() -> None:
         task_cursor[0] += 1
         return tid
 
+    DIAGNOSTIC_EVERY = 5  # print a schema-health line every N episodes
+
     def _log_episode(ep: Dict[str, Any]) -> None:
         episode_counter[0] += 1
+        n = episode_counter[0]
+        parse_ok = float(ep.get("parse_ok_ratio", 0.0))
         with open(reward_log, "a", newline="") as fh:
             csv.writer(fh).writerow([
-                episode_counter[0],
+                n,
                 ep.get("task_id", ""),
                 round(ep["total_reward"], 4),
                 round(ep["investigation_reward"], 4),
@@ -734,8 +765,27 @@ def main() -> None:
                 round(ep["grounding_reward"], 4),
                 round(ep["submission_reward"], 4),
                 round(ep["penalty_total"], 4),
+                round(parse_ok, 4),
                 datetime.now().isoformat(),
             ])
+
+        # Every-N-episodes diagnostic so flat-reward "model can't speak the schema"
+        # runs surface within the first 5 episodes instead of after 50.
+        if n % DIAGNOSTIC_EVERY == 0:
+            failures = int(ep.get("parse_failures", 0))
+            attempts = int(ep.get("parse_attempts", 0))
+            err = ep.get("last_parse_error") or "(none)"
+            raw = (ep.get("last_raw_completion") or "").replace("\n", " ")[:160]
+            logger.info(
+                "[diagnostic ep=%d] parse_ok=%.2f (%d/%d) | last_err=%s | last_raw[:160]=%r",
+                n, parse_ok, attempts - failures, attempts, err, raw,
+            )
+            if parse_ok < 0.5:
+                logger.warning(
+                    "[diagnostic ep=%d] parse_ok_ratio<0.5 — model is producing invalid actions. "
+                    "Check SYSTEM_PROMPT few-shot, max_completion_length, or use a stronger base.",
+                    n,
+                )
 
     def rollout_func(prompts: List[str], trainer: Any) -> Dict[str, List[Any]]:
         out: Dict[str, List[Any]] = {
