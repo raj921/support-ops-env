@@ -8,7 +8,7 @@ from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import EnvironmentMetadata
 
 try:
-    from ..graders import GradeResult, grade_state
+    from ..graders import GradeResult, forbidden_phrase_hits, grade_state
     from ..models import (
         AccessEventRecord,
         CaseRecord,
@@ -20,7 +20,7 @@ try:
     )
     from ..tasks import COLLECTIONS, TASK_IDS, TaskSpec, get_collection_task_ids, get_task_spec
 except ImportError:
-    from graders import GradeResult, grade_state
+    from graders import GradeResult, forbidden_phrase_hits, grade_state
     from models import (
         AccessEventRecord,
         CaseRecord,
@@ -622,10 +622,13 @@ class SupportOpsEnvironment(Environment[SupportOpsAction, SupportOpsObservation,
         )
 
     def _reply_contains_hard_fail(self, reply_text: str) -> Optional[str]:
+        # Use the negation-aware helper so a grounded refusal like
+        # "no credit has been issued yet" does not hard-fail when the forbidden
+        # phrase is "credit has been issued".
+        hits = forbidden_phrase_hits(reply_text, self._task.expectation.forbidden_reply_phrases)
+        if hits:
+            return f"Reply contains forbidden phrase: {hits[0]}"
         reply_norm = reply_text.lower()
-        for phrase in self._task.expectation.forbidden_reply_phrases:
-            if phrase.lower() in reply_norm:
-                return f"Reply contains forbidden phrase: {phrase}"
         for rule in self._task.expectation.grounding_rules:
             if rule.phrase.lower() in reply_norm and rule.fact_id not in self._st.seen_facts:
                 return f"Reply claims unsupported fact: {rule.phrase}"
