@@ -5,6 +5,7 @@ from .models import SupportOpsAction, SupportOpsObservation, SupportOpsState
 from .tasks import (
     DIFFICULTY_ORDER,
     DIFFICULTY_TIERS,
+    DRIFTSHIELD_TASK_IDS,
     TASK_IDS,
     get_curriculum_task_ids,
     get_task_spec,
@@ -14,6 +15,7 @@ from .tasks import (
 __all__ = [
     "DIFFICULTY_ORDER",
     "DIFFICULTY_TIERS",
+    "DRIFTSHIELD_TASK_IDS",
     "SupportOpsAction",
     "SupportOpsEnv",
     "SupportOpsObservation",

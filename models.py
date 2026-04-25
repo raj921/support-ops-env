@@ -16,7 +16,7 @@ SupportTeam = Literal[
     "success",
 ]
 CaseStatus = Literal["open", "pending_customer", "escalated", "resolved", "closed"]
-CollectionId = Literal["C1", "C2", "C4", "C8"]
+CollectionId = Literal["C1", "C2", "C4", "C8", "D1"]
 
 ToolName = Literal[
     "inbox.list_cases",
@@ -38,6 +38,7 @@ ToolName = Literal[
     "workflow.set_status",
     "workflow.add_tags",
     "comms.draft_reply",
+    "ops.get_recommendation",
     "submit_resolution",
 ]
 
