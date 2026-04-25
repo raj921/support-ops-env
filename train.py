@@ -663,7 +663,7 @@ def rollout_once(
             name = tc.get("name") if isinstance(tc, dict) else getattr(tc, "name", None)
             if name:
                 shaped_bonus += TOOL_TIERS.get(name, 0.0)
-        if action.answer and action.answer.get("done"):
+        if action.answer and getattr(action.answer, "done", False):
             shaped_bonus += TOOL_TIERS.get("submit_resolution", 0.0)
 
         step = env.step(action)
@@ -674,7 +674,11 @@ def rollout_once(
             {
                 "assistant_message": action.assistant_message,
                 "tool_calls": action.tool_calls,
-                "answer": action.answer.model_dump() if getattr(action, "answer", None) else None,
+                "answer": (
+                    action.answer.model_dump()
+                    if action.answer and hasattr(action.answer, "model_dump")
+                    else (action.answer if action.answer else None)
+                ),
                 "reward": step_reward,
                 "done": bool(step.done),
             }

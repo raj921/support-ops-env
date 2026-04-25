@@ -180,6 +180,7 @@ class SupportOpsObservation(Observation):
 
 
 class SupportOpsState(State):
+    episode_id: str = ""
     task_id: str
     collection: CollectionId
     task_family: str
