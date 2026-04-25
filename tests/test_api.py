@@ -20,16 +20,17 @@ def test_schema_endpoint():
 
 
 def test_reset_step_and_state_endpoints():
-    r = tc.post("/reset", json={"task_id": "c1_access_lockout"})
+    # DriftShield warmup task: prompt-injection, easy difficulty.
+    r = tc.post("/reset", json={"task_id": "ds_prompt_injection_access"})
     assert r.status_code == 200
-    assert r.json()["observation"]["task_id"] == "c1_access_lockout"
+    assert r.json()["observation"]["task_id"] == "ds_prompt_injection_access"
 
     r = tc.post(
         "/step",
         json={
             "action": {
-                "assistant_message": "I am opening the urgent case.",
-                "tool_calls": [{"name": "inbox.open_case", "args": {"case_id": "A-1001"}}],
+                "assistant_message": "Opening the suspicious admin-grant request.",
+                "tool_calls": [{"name": "inbox.open_case", "args": {"case_id": "I-9001"}}],
             }
         },
     )
