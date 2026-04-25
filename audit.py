@@ -33,7 +33,7 @@ Audit the current baseline against one easy task::
 
 Audit a trained adapter::
 
-    python audit.py --env-url ... --adapter-path outputs/support-ops-grpo-.../ \
+    python audit.py --env-url ... --adapter-path outputs/driftshield-grpo-.../ \
                     --difficulty all --episodes 1 --flag-head 5
 """
 

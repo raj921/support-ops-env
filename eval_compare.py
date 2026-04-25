@@ -25,7 +25,7 @@ Baseline vs trained LoRA::
     python eval_compare.py \
         --env-url https://raj23211-support-ops-env.hf.space \
         --base-model Qwen/Qwen3-4B-Instruct-2507 \
-        --adapter-path outputs/support-ops-grpo-2026-.../ \
+        --adapter-path outputs/driftshield-grpo-2026-.../ \
         --difficulty easy \
         --episodes 2 \
         --output-dir eval_runs/run1

@@ -1,7 +1,7 @@
 {
-  "id": "rajkumar295/support-ops-env-grpo",
-  "title": "Support Ops Env — GRPO (OpenEnv)",
-  "code_file": "support_ops_kaggle.ipynb",
+  "id": "rajkumar295/driftshield-grpo",
+  "title": "DriftShield — GRPO (OpenEnv)",
+  "code_file": "driftshield_kaggle.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": true,

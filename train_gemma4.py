@@ -42,7 +42,7 @@ Troubleshooting (4-bit on T4 / Colab):
     ``attn_implementation="eager"``, ``prepare_model_for_kbit_training`` (PEFT)
     before attaching LoRA, and set ``GRPOConfig(fp16=True, bf16=False)`` so TRL's
     generate path does not cast a 4-bit model to BF16. See
-    ``support_ops_colab_gemma4.ipynb`` for a working Colab stack.
+    ``driftshield_colab_gemma4.ipynb`` for a working Colab stack.
 """
 
 from __future__ import annotations
@@ -525,7 +525,7 @@ def main() -> None:
     )
 
     ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    output_dir = Path(args.output_dir or f"outputs/support-ops-grpo-gemma4-{ts}")
+    output_dir = Path(args.output_dir or f"outputs/driftshield-grpo-gemma4-{ts}")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     reward_log = output_dir / "reward_log.csv"

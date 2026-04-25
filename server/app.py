@@ -5,10 +5,10 @@ from openenv.core.env_server.http_server import create_app
 
 try:
     from ..models import SupportOpsAction, SupportOpsObservation
-    from .support_ops_environment import SupportOpsEnvironment
+    from .driftshield_environment import SupportOpsEnvironment
 except ImportError:
     from models import SupportOpsAction, SupportOpsObservation
-    from server.support_ops_environment import SupportOpsEnvironment
+    from server.driftshield_environment import SupportOpsEnvironment
 
 app: FastAPI = create_app(
     SupportOpsEnvironment, SupportOpsAction, SupportOpsObservation,

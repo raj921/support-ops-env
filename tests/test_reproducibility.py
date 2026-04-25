@@ -1,6 +1,6 @@
 from support_ops_env.inference import fallback_action
 from support_ops_env.models import SupportOpsAction
-from support_ops_env.server.support_ops_environment import SupportOpsEnvironment
+from support_ops_env.server.driftshield_environment import SupportOpsEnvironment
 from support_ops_env.tasks import TASK_IDS
 
 

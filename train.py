@@ -676,7 +676,7 @@ def main() -> None:
     )
 
     ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    output_dir = Path(args.output_dir or f"outputs/support-ops-grpo-{ts}")
+    output_dir = Path(args.output_dir or f"outputs/driftshield-grpo-{ts}")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     reward_log = output_dir / args.reward_log

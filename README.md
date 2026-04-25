@@ -24,7 +24,7 @@ A verifiable OpenEnv RL gym + deterministic grader + GRPO training stack. The ag
 > *Kube SRE Gym trains agents to fix infrastructure. **DriftShield trains agents to survive the runtime failures that break enterprise AI agents.***
 
 - **Live env**: https://huggingface.co/spaces/raj23211/support-ops-env
-- **Colab**: `support_ops_colab.ipynb` · **Kaggle**: `support_ops_kaggle.ipynb` (+ `kernels/support-ops-grpo/` for `kaggle kernels push`)
+- **Colab**: `driftshield_colab.ipynb` · **Kaggle**: `driftshield_kaggle.ipynb` (+ `kernels/driftshield-grpo/` for `kaggle kernels push`)
 
 ---
 
@@ -144,7 +144,7 @@ Docker: `docker build -t driftshield . && docker run --rm -p 8000:8000 driftshie
 | `models.py` | Pydantic Action/Observation/State + `D1`, `ops.get_recommendation` |
 | `tasks.py` | 4 DriftShield `TaskSpec`s + curriculum (`driftshield`, `driftshield_easy`) |
 | `graders.py` | 9-component grader, 13 penalties, negation-aware `forbidden_phrase_hits` |
-| `server/support_ops_environment.py` | Env (recoverable schema drift, `ops.get_recommendation`) |
+| `server/driftshield_environment.py` | Env (recoverable schema drift, `ops.get_recommendation`) |
 | `server/app.py` | FastAPI / OpenEnv app |
 | `client.py` | Typed sync/async OpenEnv client |
 | `inference.py` | Baseline runner + scripted strong baselines |

@@ -4,7 +4,8 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-KERNEL_DIR="kernels/support-ops-grpo"
+KERNEL_DIR="kernels/driftshield-grpo"
+NOTEBOOK="driftshield_kaggle.ipynb"
 
 # Kaggle CLI accepts any of: kaggle.json, KAGGLE_USERNAME+KAGGLE_KEY, or KAGGLE_API_TOKEN (see kaggle-api authenticate()).
 if [[ ! -f "${HOME}/.kaggle/kaggle.json" ]] \
@@ -22,7 +23,7 @@ if [[ ! -d .venv-kaggle ]]; then
 fi
 .venv-kaggle/bin/pip install -q 'kaggle>=1.6.0'
 
-cp -f support_ops_kaggle.ipynb "$KERNEL_DIR/support_ops_kaggle.ipynb"
-echo "Synced notebook → $KERNEL_DIR/support_ops_kaggle.ipynb"
+cp -f "$NOTEBOOK" "$KERNEL_DIR/$NOTEBOOK"
+echo "Synced notebook → $KERNEL_DIR/$NOTEBOOK"
 .venv-kaggle/bin/kaggle kernels push -p "$KERNEL_DIR"
 echo "Done."

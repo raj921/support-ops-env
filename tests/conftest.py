@@ -24,7 +24,9 @@ MODULE_ALIASES = {
     "support_ops_env.client": "client",
     "support_ops_env.inference": "inference",
     "support_ops_env.server.app": "server.app",
-    "support_ops_env.server.support_ops_environment": "server.support_ops_environment",
+    "support_ops_env.server.driftshield_environment": "server.driftshield_environment",
+    # Legacy alias kept so external code that still imports the old path keeps working.
+    "support_ops_env.server.support_ops_environment": "server.driftshield_environment",
 }
 
 for alias, target in MODULE_ALIASES.items():
